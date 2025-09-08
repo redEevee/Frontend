@@ -1,9 +1,10 @@
-import type {ReactNode} from "react";
 import Header from "./Header.tsx";
 import Footer from "./Footer.tsx";
+import {Outlet} from "react-router-dom";
+import type {ReactNode} from "react";
 
 interface LayoutProps {
-    children: ReactNode;
+    children?: ReactNode;
 }
 
 function Layout({children}: LayoutProps) {
@@ -12,7 +13,7 @@ function Layout({children}: LayoutProps) {
             <Header/>
             <main className="flex-1 bg-gray-50">
                 <div className="w-full max-w-7xl mx-auto px-6 py-8">
-                    {children}
+                    {children || <Outlet />}
                 </div>
             </main>
             <Footer/>

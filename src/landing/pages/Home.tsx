@@ -4,7 +4,7 @@ function Home() {
     return (
         <>
             <div>
-                홈이요
+                홈이요~₩~~~~~
             </div>
         </>
     )
