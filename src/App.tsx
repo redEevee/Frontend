@@ -1,6 +1,6 @@
 import './App.css'
+import Router from "./routers/Router.tsx";
 import Layout from "./shared/components/layouts/Layout.tsx";
-import Router from "./shared/routers/Router.tsx";
 
 function App() {
     return (
