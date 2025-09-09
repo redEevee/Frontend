@@ -7,6 +7,10 @@ function Header() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
 
+    const goToLandingPage = () =>{
+        navigate("/");
+    }
+
     const goToSnsPage = () =>{
         navigate("/sns");
     }
@@ -30,7 +34,7 @@ function Header() {
                 <div className="flex items-center space-x-2">
                     <div className="flex items-center">
                         <FaPaw className={`text-2xl ${scrolled ? 'text-purple-600' : 'text-purple-600'}`} />
-                        <h1 className={`text-xl font-bold ml-2 ${scrolled ? 'text-gray-900' : 'text-gray-900'}`}>MyRealPet</h1>
+                        <h1 onClick={goToLandingPage} className={`text-xl font-bold ml-2 ${scrolled ? 'text-gray-900' : 'text-gray-900'}`}>MyRealPet</h1>
                     </div>
                 </div>
                 
