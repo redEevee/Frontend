@@ -28,7 +28,7 @@ function Header() {
         <header 
             className={`w-full fixed top-0 z-50 transition-all duration-300 ${scrolled 
                 ? 'h-16 bg-white shadow-lg backdrop-blur-lg bg-opacity-90' 
-                : 'h-20 bg-white bg-opacity-90 shadow-md'}`}
+                : 'h-20 bg-transparent'}`}
         >
             <div className="flex items-center justify-between w-full max-w-7xl mx-auto h-full px-6">
                 <div className="flex items-center space-x-2">
