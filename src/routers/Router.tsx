@@ -1,17 +1,23 @@
-import "react";
+import { lazy, Suspense } from "react"
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Home from "../landing/pages/Home.tsx";
+import Layout from "../shared/components/layouts/Layout.tsx";
 
-function Router() {
+const Home = lazy(() => import("../landing/pages/Home.tsx"));
+const PetSns = lazy(() => import("../sns/pages/PetSns.tsx"));
+
+function AppRouter() {
     return (
-        <>
-            <BrowserRouter>
+        <BrowserRouter>
+            <Suspense fallback={<div>Loading...</div>}>
                 <Routes>
-                    <Route path="/" element={<Home />} />
+                    <Route element={<Layout />}>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/sns" element={<PetSns />} />
+                    </Route>
                 </Routes>
-            </BrowserRouter>
-        </>
+            </Suspense>
+        </BrowserRouter>
     )
 }
 
-export default Router;
+export default AppRouter;

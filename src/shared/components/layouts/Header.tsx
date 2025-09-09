@@ -1,9 +1,19 @@
 import { useState, useEffect } from "react";
+import {useNavigate} from "react-router-dom";
 import { FaPaw, FaBars, FaTimes, FaSearch } from "react-icons/fa";
 
 function Header() {
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const navigate = useNavigate();
+
+    const goToLandingPage = () =>{
+        navigate("/");
+    }
+
+    const goToSnsPage = () =>{
+        navigate("/sns");
+    }
     
     useEffect(() => {
         const handleScroll = () => {
@@ -23,17 +33,17 @@ function Header() {
             <div className="flex items-center justify-between w-full max-w-7xl mx-auto h-full px-6">
                 <div className="flex items-center space-x-2">
                     <div className="flex items-center">
-                        <FaPaw className={`text-2xl ${scrolled ? 'text-purple-600' : 'text-white'}`} />
-                        <h1 className={`text-xl font-bold ml-2 ${scrolled ? 'text-gray-900' : 'text-white'}`}>MyRealPet</h1>
+                        <FaPaw className={`text-2xl ${scrolled ? 'text-purple-600' : 'text-purple-600'}`} />
+                        <h1 onClick={goToLandingPage} className={`text-xl font-bold ml-2 ${scrolled ? 'text-gray-900' : 'text-gray-900'}`}>MyRealPet</h1>
                     </div>
                 </div>
                 
                 {/* Desktop Navigation */}
                 <nav className="hidden md:flex items-center space-x-8">
-                    <a onClick={goSns} className={`font-medium transition-colors hover:text-purple-500 ${scrolled ? 'text-gray-700' : 'text-white'}`}>SNS</a>
-                    <a href="#" className={`font-medium transition-colors hover:text-purple-500 ${scrolled ? 'text-gray-700' : 'text-white'}`}>펫 관리</a>
-                    <a href="#" className={`font-medium transition-colors hover:text-purple-500 ${scrolled ? 'text-gray-700' : 'text-white'}`}>나의 펫</a>
-                    <a href="#" className={`font-medium transition-colors hover:text-purple-500 ${scrolled ? 'text-gray-700' : 'text-white'}`}>Q&A</a>
+                    <a onClick={goToSnsPage} className={`font-medium transition-colors hover:text-purple-500 ${scrolled ? 'text-gray-700' : 'text-gray-700'}`}>SNS</a>
+                    <a href="#" className={`font-medium transition-colors hover:text-purple-500 ${scrolled ? 'text-gray-700' : 'text-gray-700'}`}>펫 관리</a>
+                    <a href="#" className={`font-medium transition-colors hover:text-purple-500 ${scrolled ? 'text-gray-700' : 'text-gray-700'}`}>나의 펫</a>
+                    <a href="#" className={`font-medium transition-colors hover:text-purple-500 ${scrolled ? 'text-gray-700' : 'text-gray-700'}`}>Q&A</a>
                 </nav>
                 
                 <div className="flex items-center space-x-4">
@@ -53,8 +63,8 @@ function Header() {
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     >
                         {mobileMenuOpen 
-                            ? <FaTimes className={scrolled ? 'text-gray-900' : 'text-white'} /> 
-                            : <FaBars className={scrolled ? 'text-gray-900' : 'text-white'} />}
+                            ? <FaTimes className={scrolled ? 'text-gray-900' : 'text-gray-900'} /> 
+                            : <FaBars className={scrolled ? 'text-gray-900' : 'text-gray-900'} />}
                     </button>
                 </div>
             </div>
