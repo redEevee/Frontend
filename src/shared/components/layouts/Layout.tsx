@@ -11,9 +11,9 @@ function Layout({children}: LayoutProps) {
     return (
         <div className="min-h-screen flex flex-col">
             <Header/>
-            <main className="flex-1 bg-gray-50">
+                <main className="flex-1 bg-gray-50 pt-20">
                     {children || <Outlet />}
-            </main>
+                </main>
             <Footer/>
         </div>
     );
