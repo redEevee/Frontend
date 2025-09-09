@@ -5,7 +5,7 @@ function Footer() {
     return (
         <footer className="w-full bg-gradient-to-br from-gray-900 to-gray-800 text-white py-16 mt-auto relative overflow-hidden">
             {/* 장식적인 요소 */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-600 to-blue-500"></div>
+            <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-purple-600 to-blue-500"></div>
             <div className="absolute -top-16 -right-16 w-32 h-32 rounded-full bg-purple-600 opacity-10"></div>
             <div className="absolute -bottom-20 -left-20 w-40 h-40 rounded-full bg-blue-500 opacity-10"></div>
             
