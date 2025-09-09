@@ -12,9 +12,7 @@ function Layout({children}: LayoutProps) {
         <div className="min-h-screen flex flex-col">
             <Header/>
             <main className="flex-1 bg-gray-50">
-                <div className="w-full max-w-7xl mx-auto px-6 py-8">
                     {children || <Outlet />}
-                </div>
             </main>
             <Footer/>
         </div>
