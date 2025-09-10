@@ -5,8 +5,9 @@ export interface DailyMission {
 
 export interface Pet {
     id: number;
+    type: 'dog' | 'cat' | 'other';
     name: string;
-    gender: '남아' | '여아';
+    gender: '남아' | '여아' | '정보없음';
     breed: string;
     dob: string; // 생년월일
     hasMicrochip: boolean;

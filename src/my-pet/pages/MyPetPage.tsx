@@ -10,6 +10,7 @@ const samplePets: Pet[] = [
     {
         id: 1,
         name: '왕만두',
+        type: 'dog',
         gender: '남아',
         breed: '비숑 프리제',
         dob: '2022.04.13',
@@ -26,8 +27,9 @@ const samplePets: Pet[] = [
     {
         id: 2,
         name: '정범이',
+        type: 'other',
         gender: '여아',
-        breed: '포메라니안',
+        breed: '에겐에겐',
         dob: '1999.09.28',
         hasMicrochip: true,
         isNeutered: true,

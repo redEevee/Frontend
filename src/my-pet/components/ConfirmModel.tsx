@@ -11,10 +11,9 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onConfirm,
     if (!isOpen) return null;
 
     return (
-        // 화면 전체를 덮는 반투명 배경
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 transition-opacity duration-300">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
             {/* 실제 모달 창 부분 */}
-            <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-xl transform transition-all duration-300 scale-95 opacity-0 animate-fade-in-scale">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-xl">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">{title}</h2>
                 <p className="text-gray-600 mb-8 text-center">{message}</p>
 
@@ -39,3 +38,4 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onConfirm,
 };
 
 export default ConfirmModal;
+
