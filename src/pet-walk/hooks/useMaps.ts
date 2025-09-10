@@ -1,10 +1,11 @@
 import React, {useState} from "react";
 import {api} from '../utils/Api.tsx';
+import type {KakaoBackendSearchResponse} from "../types/kakaoMapsApi.ts";
 
 export const useMaps = () => {
     const [map, setMap] = useState<kakao.maps.Map | null>(null);
     const [searchKeyword, setSearchKeyword] = useState<string>("");
-    const [searchResults, setSearchResults] = useState<any>(null);
+    const [searchResults, setSearchResults] = useState<KakaoBackendSearchResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [currentMarker, setCurrentMarker] = useState<kakao.maps.Marker | null>(null);
