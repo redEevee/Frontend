@@ -63,8 +63,8 @@ function Header() {
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     >
                         {mobileMenuOpen
-                            ? <FaTimes className={scrolled ? 'text-gray-900' : 'text-gray-900'}/>
-                            : <FaBars className={scrolled ? 'text-gray-900' : 'text-gray-900'}/>}
+                            ? <FaTimes className={scrolled ? 'text-gray-900' : 'text-white'}/>
+                            : <FaBars className={scrolled ? 'text-gray-900' : 'text-white'}/>}
                     </button>
                 </div>
             </div>
