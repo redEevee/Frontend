@@ -10,6 +10,8 @@ interface PetModalProps {
 }
 
 const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet}) => {
+    const [type, setType] = useState<'dog' | 'cat' | 'other'>('dog');
+
     const [name, setName] = useState('');
     const [breed, setBreed] = useState('');
     const [dob, setDob] = useState('');
@@ -20,11 +22,15 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
     useEffect(() => {
         if (isOpen) {
             if (mode === 'edit' && pet) {
+                setType(pet.type);
+
                 setName(pet.name);
                 setBreed(pet.breed);
                 setDob(pet.dob);
                 setImagePreview(pet.imageUrl);
             } else {
+                setType('dog');
+
                 setName('');
                 setBreed('');
                 setDob('');
@@ -51,6 +57,7 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
     const handleSave = () => {
         onSave({
             id: pet?.id,
+            type,
             name,
             breed,
             dob,
@@ -92,6 +99,49 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
                     />
                 </div>
 
+                {/* 강아지/고양이 선택 UI */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">종류</label>
+                    <div className="flex gap-2 sm:gap-4">
+                        {/* 강아지 버튼 */}
+                        <button
+                            onClick={() => setType('dog')}
+                            className={`flex-1 py-3 px-2 sm:px-4 rounded-lg border-2 transition text-center ${
+                                type === 'dog'
+                                    ? 'bg-indigo-500 border-indigo-500 text-white shadow-lg'
+                                    : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            <i className="fas fa-dog sm:mr-2"></i>
+                            <span className="hidden sm:inline">강아지</span>
+                        </button>
+                        {/* 고양이 버튼 */}
+                        <button
+                            onClick={() => setType('cat')}
+                            className={`flex-1 py-3 px-2 sm:px-4 rounded-lg border-2 transition text-center ${
+                                type === 'cat'
+                                    ? 'bg-orange-500 border-orange-500 text-white shadow-lg'
+                                    : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            <i className="fas fa-cat sm:mr-2"></i>
+                            <span className="hidden sm:inline">고양이</span>
+                        </button>
+                        {/* 기타 버튼 */}
+                        <button
+                            onClick={() => setType('other')}
+                            className={`flex-1 py-3 px-2 sm:px-4 rounded-lg border-2 transition text-center ${
+                                type === 'other'
+                                    ? 'bg-gray-500 border-gray-500 text-white shadow-lg'
+                                    : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            <i className="fas fa-paw sm:mr-2"></i>
+                            <span className="hidden sm:inline">기타</span>
+                        </button>
+                    </div>
+                </div>
+
                 {/* 이름, 품종, 생일 등 입력 필드 */}
                 <div className="space-y-4">
                     <div>
@@ -114,7 +164,7 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
                             value={breed}
                             onChange={(e) => setBreed(e.target.value)}
                             className="w-full px-4 py-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-                            placeholder="예) 푸들, 말티즈, 치와와 등"
+                            placeholder="예) 푸들, 말티즈, 랙돌, 페르시안"
                         />
                     </div>
                     <div>
