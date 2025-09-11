@@ -50,6 +50,7 @@ function Header() {
                         <FaSearch className="text-sm"/>
                     </button>
                     <button
+                        onClick={() => navigate('/login')}
                         className={`hidden md:block px-5 py-2 font-medium rounded-full transition-all duration-300 ${scrolled
                             ? 'bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:shadow-lg hover:shadow-purple-200'
                             : 'bg-white text-purple-600 hover:bg-opacity-90'}`}>
@@ -80,6 +81,7 @@ function Header() {
                         <a href="#"
                            className="text-gray-800 hover:text-purple-600 transition-colors font-medium">고객지원</a>
                         <button
+                            onClick={() => navigate('/login')}
                             className="w-full mt-2 py-2 bg-gradient-to-r from-purple-600 to-blue-500 text-white rounded-full font-medium">
                             시작하기
                         </button>
