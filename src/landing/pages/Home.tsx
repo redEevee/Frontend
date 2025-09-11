@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaPaw, FaHeart, FaUserFriends, FaCalendarAlt, FaClipboardList, FaComments, FaArrowRight, FaPlay, FaQuoteLeft, FaStar } from "react-icons/fa";
 import { MdPets, MdHealthAndSafety, MdOutlineLocalGroceryStore } from "react-icons/md";
 import { RiHeartPulseFill } from "react-icons/ri";
@@ -6,6 +7,7 @@ import { RiHeartPulseFill } from "react-icons/ri";
 function Home() {
     const [activeTab, setActiveTab] = useState<'sns' | 'management'>('sns');
     const [isVisible, setIsVisible] = useState(false);
+    const navigate = useNavigate();
     
     useEffect(() => {
         // 페이지 로드 후 애니메이션 효과를 위한 타이머
@@ -43,7 +45,10 @@ function Home() {
                             당신의 소중한 반려동물과 함께하는 모든 순간을 기록하고 관리하며 다른 반려인들과 공유하세요.
                         </p>
                         <div className="flex flex-wrap gap-4">
-                            <button className="bg-white text-purple-700 px-8 py-4 rounded-full font-semibold hover:shadow-lg hover:shadow-purple-500/30 transition duration-300 flex items-center group">
+                            <button 
+                                onClick={() => navigate('/login')}
+                                className="bg-white text-purple-700 px-8 py-4 rounded-full font-semibold hover:shadow-lg hover:shadow-purple-500/30 transition duration-300 flex items-center group"
+                            >
                                 <FaPaw className="mr-2" /> 
                                 시작하기
                                 <FaArrowRight className="ml-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
@@ -305,7 +310,10 @@ function Home() {
                                 <p className="text-xl mb-8 text-blue-100">반려동물과의 특별한 순간을 기록하고 건강하고 행복한 생활을 함께 만들어가세요.</p>
                                 
                                 <div className="flex flex-col sm:flex-row gap-4">
-                                    <button className="bg-white text-purple-700 px-8 py-4 rounded-full font-semibold text-lg hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 flex items-center justify-center group">
+                                    <button 
+                                        onClick={() => navigate('/login')}
+                                        className="bg-white text-purple-700 px-8 py-4 rounded-full font-semibold text-lg hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 flex items-center justify-center group"
+                                    >
                                         <FaPaw className="mr-2" /> 
                                         무료로 시작하기
                                         <FaArrowRight className="ml-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
