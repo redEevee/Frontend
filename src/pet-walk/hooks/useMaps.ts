@@ -12,7 +12,11 @@ export const useMaps = () => {
     const [selectedPlace, setSelectedPlace] = useState<any>(null);
     const [showWebView, setShowWebView] = useState<boolean>(false);
     const [webViewUrl, setWebViewUrl] = useState<string>('');
+    const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
+    const [locationLoading, setLocationLoading] = useState<boolean>(false);
+    const [searchRadius, setSearchRadius] = useState<number>(1000); // 기본 1km
 
+    // 키워드 검색
     const handleSearch = async (keyword?: string) => {
         const searchTerm = keyword || searchKeyword;
         if (!searchTerm.trim()) {
@@ -25,15 +29,12 @@ export const useMaps = () => {
 
         try {
             const response = await api.searchPlaces(searchTerm, "KEYWORD");
-
             setSearchResults(response);
-            console.log('검색 결과:', response);
-
+            console.log('키워드 검색 결과:', response);
         } catch (error) {
             const errorMessage = error instanceof Error
                 ? error.message
                 : '검색 중 오류가 발생했습니다.';
-
             setError(errorMessage);
             setSearchResults(null);
         } finally {
@@ -47,6 +48,7 @@ export const useMaps = () => {
         }
     };
 
+    // 지도의 특정 위치로 이동하고 마커 표시
     const moveToLocation = (lat: number, lng: number, placeData: any) => {
         if (!map) return;
 
@@ -61,7 +63,7 @@ export const useMaps = () => {
         // 새로운 위치로 지도 이동
         const moveLatLng = new window.kakao.maps.LatLng(lat, lng);
         map.setCenter(moveLatLng);
-        map.setLevel(3); // 줌 레벨 설정
+        map.setLevel(3);
 
         // 새로운 마커 생성
         const marker = new window.kakao.maps.Marker({
@@ -69,7 +71,7 @@ export const useMaps = () => {
             map: map
         });
 
-        // 개선된 인포윈도우 생성
+        // 인포윈도우 생성
         const infoWindowContent = `
             <div style="padding: 10px; min-width: 250px; font-family: 'Malgun Gothic', sans-serif;">
                 <div style="font-weight: bold; font-size: 14px; color: #333; margin-bottom: 5px;">
@@ -87,22 +89,216 @@ export const useMaps = () => {
             content: infoWindowContent
         });
 
-        // 마커에 인포윈도우 표시
         infoWindow.open(map, marker);
-
-        // 현재 마커 상태 업데이트
         setCurrentMarker(marker);
     };
 
+    // 웹뷰 관련 함수들
     const openWebView = (url: string) => {
         console.log('카카오맵 상세 페이지 열기:', url);
-        // iframe 대신 새 탭에서 열기 (CSRF 보호 때문)
-        window.open(url, '_blank', 'noopener,noreferrer');
+        setWebViewUrl(url);
+        setShowWebView(true);
     };
 
     const closeWebView = () => {
         setShowWebView(false);
         setWebViewUrl('');
+    };
+
+    // 현재 위치 가져오기
+    const getCurrentLocation = () => {
+        setLocationLoading(true);
+        setError(null);
+
+        if (!navigator.geolocation) {
+            setError('위치 서비스가 지원되지 않습니다.');
+            setLocationLoading(false);
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                const location = { lat: latitude, lng: longitude };
+                setCurrentLocation(location);
+
+                if (map) {
+                    // 기존 마커 제거
+                    if (currentMarker) {
+                        currentMarker.setMap(null);
+                    }
+
+                    // 현재 위치로 지도 이동
+                    const moveLatLng = new window.kakao.maps.LatLng(latitude, longitude);
+                    map.setCenter(moveLatLng);
+                    map.setLevel(4);
+
+                    // 현재 위치 마커 생성
+                    const marker = new window.kakao.maps.Marker({
+                        position: moveLatLng,
+                        map: map
+                    });
+
+                    // 현재 위치 인포윈도우
+                    const infoWindowContent = `
+                        <div style="padding: 10px; min-width: 200px; font-family: 'Malgun Gothic', sans-serif;">
+                            <div style="font-weight: bold; font-size: 14px; color: #333; margin-bottom: 5px;">
+                                📍 현재 위치
+                            </div>
+                            <div style="font-size: 12px; color: #666;">
+                                위도: ${latitude.toFixed(6)}<br>
+                                경도: ${longitude.toFixed(6)}
+                            </div>
+                        </div>
+                    `;
+
+                    const infoWindow = new window.kakao.maps.InfoWindow({
+                        content: infoWindowContent
+                    });
+
+                    infoWindow.open(map, marker);
+                    setCurrentMarker(marker);
+                }
+                
+                setLocationLoading(false);
+            },
+            (error) => {
+                let errorMessage = '위치를 가져올 수 없습니다.';
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = '위치 접근 권한이 거부되었습니다.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = '위치 정보를 사용할 수 없습니다.';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = '위치 요청 시간이 초과되었습니다.';
+                        break;
+                }
+                setError(errorMessage);
+                setLocationLoading(false);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            }
+        );
+    };
+
+    // 현재 위치 기준 장소 검색
+    const searchNearbyPlaces = async (category: string) => {
+        if (!currentLocation) {
+            setError('현재 위치를 먼저 확인해주세요.');
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.searchPlaces(category, "KEYWORD", {
+                x: currentLocation.lng,
+                y: currentLocation.lat,
+                radius: searchRadius,
+                size: 15
+            });
+
+            setSearchResults(response);
+            console.log('현재 위치 기준 검색 결과:', response);
+        } catch (error) {
+            const errorMessage = error instanceof Error
+                ? error.message
+                : '근처 장소 검색 중 오류가 발생했습니다.';
+            setError(errorMessage);
+            setSearchResults(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 지도 중심 기준 장소 검색
+    const searchNearbyPlacesByMapCenter = async (category: string) => {
+        if (!map) {
+            setError('지도를 불러오는 중입니다.');
+            return;
+        }
+
+        const center = map.getCenter();
+        const centerLat = center.getLat();
+        const centerLng = center.getLng();
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.searchPlaces(category, "KEYWORD", {
+                x: centerLng,
+                y: centerLat,
+                radius: searchRadius,
+                size: 15
+            });
+
+            setSearchResults(response);
+            console.log('지도 중심 기준 검색 결과:', response);
+        } catch (error) {
+            const errorMessage = error instanceof Error
+                ? error.message
+                : '장소 검색 중 오류가 발생했습니다.';
+            setError(errorMessage);
+            setSearchResults(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 현재 위치로 지도 이동
+    const moveToCurrentLocation = () => {
+        if (!map || !currentLocation) {
+            getCurrentLocation();
+            return;
+        }
+
+        // 기존 마커 제거
+        if (currentMarker) {
+            currentMarker.setMap(null);
+        }
+
+        // 현재 위치로 지도 이동
+        const moveLatLng = new window.kakao.maps.LatLng(currentLocation.lat, currentLocation.lng);
+        map.setCenter(moveLatLng);
+        map.setLevel(4);
+
+        // 현재 위치 마커 생성
+        const marker = new window.kakao.maps.Marker({
+            position: moveLatLng,
+            map: map
+        });
+
+        // 현재 위치 인포윈도우
+        const infoWindowContent = `
+            <div style="padding: 10px; min-width: 200px; font-family: 'Malgun Gothic', sans-serif;">
+                <div style="font-weight: bold; font-size: 14px; color: #333; margin-bottom: 5px;">
+                    📍 현재 위치
+                </div>
+                <div style="font-size: 12px; color: #666;">
+                    위도: ${currentLocation.lat.toFixed(6)}<br>
+                    경도: ${currentLocation.lng.toFixed(6)}
+                </div>
+            </div>
+        `;
+
+        const infoWindow = new window.kakao.maps.InfoWindow({
+            content: infoWindowContent
+        });
+
+        infoWindow.open(map, marker);
+        setCurrentMarker(marker);
+    };
+
+    // 반경 변경 처리
+    const handleRadiusChange = (radius: number) => {
+        setSearchRadius(radius);
     };
 
     return {
@@ -116,6 +312,9 @@ export const useMaps = () => {
         selectedPlace,
         error,
         loading,
+        locationLoading,
+        currentLocation,
+        searchRadius,
         handleSearch,
         handleKeyUp,
         moveToLocation,
@@ -123,6 +322,11 @@ export const useMaps = () => {
         showWebView,
         webViewUrl,
         openWebView,
-        closeWebView
+        closeWebView,
+        getCurrentLocation,
+        searchNearbyPlaces,
+        searchNearbyPlacesByMapCenter,
+        moveToCurrentLocation,
+        handleRadiusChange
     }
 }

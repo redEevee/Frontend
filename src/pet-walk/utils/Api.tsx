@@ -2,8 +2,6 @@ import {apiClient} from './axiosConfig.ts';
 import type {
     KakaoBackendReverseGeocodingResponse,
     KakaoBackendSearchResponse,
-    MeetingPlaceRequest,
-    MeetingPlaceResponse
 } from '../types/kakaoMapsApi.ts';
 
 export const api = {

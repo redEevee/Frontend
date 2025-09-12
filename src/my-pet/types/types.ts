@@ -14,4 +14,6 @@ export interface Pet {
     isNeutered: boolean; // 중성화여부
     imageUrl: string;
     dailyMission: DailyMission[];
+    hasRerolledToday: boolean;
+    lastMissionDate: string;
 }
