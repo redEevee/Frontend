@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaPaw, FaHeart, FaUserFriends, FaCalendarAlt, FaClipboardList, FaComments, FaArrowRight, FaPlay, FaQuoteLeft, FaStar } from "react-icons/fa";
 import { MdPets, MdHealthAndSafety, MdOutlineLocalGroceryStore } from "react-icons/md";
+import imge from '../../assets/images/landingPetImage.png';
 import { RiHeartPulseFill } from "react-icons/ri";
 
 function Home() {
@@ -78,12 +79,14 @@ function Home() {
                                 {/* 이미지 자리 */}
                                 <div className="bg-gradient-to-br from-purple-50 to-blue-50 h-72 md:h-96 rounded-xl flex items-center justify-center overflow-hidden relative">
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                        <FaPaw className="text-9xl text-purple-200" />
+                                        {/*<FaPaw className="text-9xl text-purple-200" />*/}
+                                        <img src={imge} style={{ width: '100%', height: '100%' }} />
+
                                     </div>
-                                    <div className="relative z-10 text-center px-6">
-                                        <MdPets className="text-7xl text-purple-600 mx-auto mb-4" />
-                                        <span className="text-gray-600 text-xl font-medium block">귀여운 반려동물 이미지</span>
-                                    </div>
+                                    {/*<div className="relative z-10 text-center px-6">*/}
+                                    {/*    <MdPets className="text-7xl text-purple-600 mx-auto mb-4" />*/}
+                                    {/*    <span className="text-gray-600 text-xl font-medium block">귀여운 반려동물 이미지</span>*/}
+                                    {/*</div>*/}
                                 </div>
                                 
                                 {/* 하단 기능 아이콘 */}
