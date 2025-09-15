@@ -1,5 +1,5 @@
 import {useEffect, useState} from "react";
-import {FaSearch, FaMapMarkerAlt} from "react-icons/fa";
+import {FaSearch, FaMapMarkerAlt, FaChevronDown, FaChevronUp, FaTimes, FaBars} from "react-icons/fa";
 import {useMaps} from "../hooks/useMaps.ts";
 
 function PetWalk() {
@@ -31,6 +31,9 @@ function PetWalk() {
     const [selectedCategory, setSelectedCategory] = useState("동물병원");
     const [searchMode, setSearchMode] = useState<'current' | 'mapCenter'>('current');
     const [initialSearchDone, setInitialSearchDone] = useState(false);
+    const [isSearchPanelOpen, setIsSearchPanelOpen] = useState(true);
+    const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     // 지도 초기화
     useEffect(() => {
@@ -145,175 +148,202 @@ function PetWalk() {
     };
 
     return (
-        <div className="pt-16 h-screen bg-violet-500">
-            <div className="h-full flex">
+        <div className="h-screen pt-16 bg-violet-500 relative overflow-hidden">
+            {/* 모바일 햄버거 메뉴 */}
+            <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="fixed top-20 left-4 z-30 lg:hidden bg-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all"
+            >
+                {isSidebarOpen ? <FaTimes className="w-5 h-5 text-gray-600" /> : <FaBars className="w-5 h-5 text-gray-600" />}
+            </button>
+
+            <div className="h-full flex relative">
                 {/* 왼쪽 사이드바 */}
-                <div className="w-96 bg-white shadow-xl flex flex-col max-h-screen overflow-hidden">
+                <div className={`${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                    fixed lg:relative z-20 w-80 lg:w-96 bg-white shadow-2xl
+                    flex flex-col h-full transition-transform duration-300 ease-in-out`}>
                     {/* 헤더 - 고정 */}
-                    <div className="flex-shrink-0 p-4 border-b border-gray-200 bg-gradient-to-r from-violet-500 to-purple-600">
-                        <h1 className="text-lg font-bold text-white mb-3">🐾 펫 플레이스 찾기</h1>
+                    <div className="flex-shrink-0 bg-white border-b border-gray-200 shadow-sm">
+                        <div className="p-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <h1 className="text-xl font-bold text-gray-800">🐾 펫 플레이스</h1>
+                                <div className="lg:hidden">
+                                    <button
+                                        onClick={() => setIsSidebarOpen(false)}
+                                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    >
+                                        <FaTimes className="w-5 h-5 text-gray-600" />
+                                    </button>
+                                </div>
+                            </div>
 
-                        {/* 검색창 */}
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="장소명, 주소 검색..."
-                                value={searchKeyword}
-                                onChange={(e) => setSearchKeyword(e.target.value)}
-                                onKeyUp={handleKeyUp}
-                                className="w-full bg-white rounded-full px-4 pr-12 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 shadow-sm border"
-                            />
+                            {/* 검색창 */}
+                            <div className="relative mb-4">
+                                <input
+                                    type="text"
+                                    placeholder="장소명, 주소 검색..."
+                                    value={searchKeyword}
+                                    onChange={(e) => setSearchKeyword(e.target.value)}
+                                    onKeyUp={handleKeyUp}
+                                    className="w-full bg-gray-50 rounded-xl px-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white border border-gray-200 transition-all"
+                                />
 
-                            {searchKeyword.trim() && (
-                                <button
-                                    onClick={() => setSearchKeyword('')}
-                                    className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                >
-                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd"
-                                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                              clipRule="evenodd"/>
-                                    </svg>
-                                </button>
-                            )}
-
-                            <button
-                                onClick={handleSearchClick}
-                                disabled={loading}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-violet-500 hover:text-violet-600 disabled:text-gray-300"
-                            >
-                                {loading ? (
-                                    <div
-                                        className="w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                    <FaSearch className="w-4 h-4"/>
+                                {searchKeyword.trim() && (
+                                    <button
+                                        onClick={() => setSearchKeyword('')}
+                                        className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    >
+                                        <FaTimes className="w-4 h-4" />
+                                    </button>
                                 )}
-                            </button>
-                        </div>
-                    </div>
 
-                    {/* 검색 설정 */}
-                    <div className="p-6 border-b border-gray-200">
-                        {/* 검색 모드 */}
-                        <div className="mb-6">
-                            <h3 className="text-sm font-semibold text-gray-700 mb-3">검색 기준</h3>
-                            <div className="flex bg-gray-100 rounded-lg p-1">
                                 <button
-                                    onClick={() => setSearchMode('current')}
-                                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                                        searchMode === 'current'
-                                            ? 'bg-white text-violet-700 shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-800'
-                                    }`}
+                                    onClick={handleSearchClick}
+                                    disabled={loading}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-violet-500 hover:text-violet-600 disabled:text-gray-300 transition-colors"
                                 >
-                                    📍 내 위치 기준
-                                </button>
-                                <button
-                                    onClick={() => setSearchMode('mapCenter')}
-                                    className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                                        searchMode === 'mapCenter'
-                                            ? 'bg-white text-violet-700 shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-800'
-                                    }`}
-                                >
-                                    🗺️ 지도 중심
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* 위치 버튼들 */}
-                        <div className="flex gap-2 mb-6">
-                            {!currentLocation && searchMode === 'current' && (
-                                <button
-                                    onClick={getCurrentLocation}
-                                    disabled={locationLoading}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-violet-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {locationLoading ? (
-                                        <div
-                                            className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    {loading ? (
+                                        <div className="w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
                                     ) : (
-                                        <FaMapMarkerAlt className="w-4 h-4"/>
-                                    )}
-                                    {locationLoading ? '위치 확인 중...' : '내 위치 찾기'}
-                                </button>
-                            )}
-
-                            {searchMode === 'mapCenter' && currentLocation && (
-                                <button
-                                    onClick={moveToCurrentLocation}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-gray-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-600"
-                                >
-                                    <FaMapMarkerAlt className="w-4 h-4"/>
-                                    내 위치로 이동
-                                </button>
-                            )}
-                        </div>
-
-                        {/* 검색 반경 */}
-                        <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-sm font-semibold text-gray-700">검색 반경</h3>
-                                <span className="text-sm font-medium text-violet-600">
-                                    {searchRadius >= 1000 ? `${searchRadius / 1000}km` : `${searchRadius}m`}
-                                </span>
-                            </div>
-                            <input
-                                type="range"
-                                min="500"
-                                max="5000"
-                                step="500"
-                                value={searchRadius}
-                                onChange={(e) => handleRadiusChangeWithSearch(Number(e.target.value))}
-                                className="w-full accent-violet-500"
-                            />
-                            <div className="flex justify-between text-xs text-gray-400 mt-1">
-                                <span>500m</span>
-                                <span>5km</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 카테고리 */}
-                    <div className="p-6 border-b border-gray-200">
-                        <h3 className="text-sm font-semibold text-gray-700 mb-4">카테고리</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                            {categories.map((category) => (
-                                <button
-                                    key={category.id}
-                                    onClick={() => handleCategorySearch(category.id)}
-                                    disabled={(searchMode === 'current' && !currentLocation) || loading}
-                                    className={`p-3 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center gap-2 ${
-                                        selectedCategory === category.id
-                                            ? "bg-violet-100 text-violet-700 border-2 border-violet-300"
-                                            : "bg-gray-50 text-gray-700 border-2 border-transparent hover:bg-gray-100"
-                                    }`}
-                                >
-                                    <span className="text-xl">{category.emoji}</span>
-                                    <span className="text-xs">{category.label}</span>
-                                    {loading && selectedCategory === category.id && (
-                                        <div
-                                            className="w-3 h-3 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
+                                        <FaSearch className="w-4 h-4"/>
                                     )}
                                 </button>
-                            ))}
+                            </div>
                         </div>
+
+                        {/* 카테고리 - 항상 보이게 */}
+                        <div className="px-4 pb-4">
+                            <div className="grid grid-cols-3 gap-2">
+                                {categories.map((category) => (
+                                    <button
+                                        key={category.id}
+                                        onClick={() => handleCategorySearch(category.id)}
+                                        disabled={(searchMode === 'current' && !currentLocation) || loading}
+                                        className={`p-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center gap-1 ${
+                                            selectedCategory === category.id
+                                                ? "bg-violet-500 text-white shadow-md"
+                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        }`}
+                                    >
+                                        <span className="text-lg">{category.emoji}</span>
+                                        <span className="text-xs leading-tight">{category.label}</span>
+                                        {loading && selectedCategory === category.id && (
+                                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 검색 설정 토글 */}
+                        <button
+                            onClick={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)}
+                            className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between text-sm font-medium text-gray-700 border-t border-gray-200"
+                        >
+                            <span>검색 설정</span>
+                            {isSettingsPanelOpen ? <FaChevronUp className="w-4 h-4" /> : <FaChevronDown className="w-4 h-4" />}
+                        </button>
                     </div>
+
+                    {/* 검색 설정 패널 - 접을 수 있는 */}
+                    {isSettingsPanelOpen && (
+                        <div className="border-b border-gray-200 bg-gray-50">
+                            <div className="p-4 space-y-4">
+                                {/* 검색 모드 */}
+                                <div>
+                                    <h3 className="text-sm font-semibold text-gray-700 mb-2">검색 기준</h3>
+                                    <div className="flex bg-white rounded-lg p-1 border border-gray-200">
+                                        <button
+                                            onClick={() => setSearchMode('current')}
+                                            className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all ${
+                                                searchMode === 'current'
+                                                    ? 'bg-violet-500 text-white shadow-sm'
+                                                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            📍 내 위치 기준
+                                        </button>
+                                        <button
+                                            onClick={() => setSearchMode('mapCenter')}
+                                            className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all ${
+                                                searchMode === 'mapCenter'
+                                                    ? 'bg-violet-500 text-white shadow-sm'
+                                                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            🗺️ 지도 중심
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* 위치 버튼들 */}
+                                <div className="flex gap-2">
+                                    {!currentLocation && searchMode === 'current' && (
+                                        <button
+                                            onClick={getCurrentLocation}
+                                            disabled={locationLoading}
+                                            className="flex-1 flex items-center justify-center gap-2 bg-violet-500 text-white py-2.5 px-3 rounded-lg text-xs font-medium hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {locationLoading ? (
+                                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            ) : (
+                                                <FaMapMarkerAlt className="w-3 h-3"/>
+                                            )}
+                                            {locationLoading ? '위치 확인 중...' : '내 위치 찾기'}
+                                        </button>
+                                    )}
+
+                                    {searchMode === 'mapCenter' && currentLocation && (
+                                        <button
+                                            onClick={moveToCurrentLocation}
+                                            className="flex-1 flex items-center justify-center gap-2 bg-gray-500 text-white py-2.5 px-3 rounded-lg text-xs font-medium hover:bg-gray-600 transition-colors"
+                                        >
+                                            <FaMapMarkerAlt className="w-3 h-3"/>
+                                            내 위치로 이동
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* 검색 반경 */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h3 className="text-sm font-semibold text-gray-700">검색 반경</h3>
+                                        <span className="text-sm font-medium text-violet-600 bg-violet-100 px-2 py-1 rounded-full">
+                                            {searchRadius >= 1000 ? `${searchRadius / 1000}km` : `${searchRadius}m`}
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="500"
+                                        max="5000"
+                                        step="500"
+                                        value={searchRadius}
+                                        onChange={(e) => handleRadiusChangeWithSearch(Number(e.target.value))}
+                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                                    />
+                                    <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                        <span>500m</span>
+                                        <span>5km</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* 검색 결과 */}
-                    <div className="flex-1 overflow-hidden flex flex-col">
-                        <div className="p-6 border-b border-gray-200">
+                    <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                        <div className="flex-shrink-0 px-4 py-3 bg-white border-b border-gray-200">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-semibold text-gray-700">검색 결과</h3>
                                 {searchResults && searchResults.documents && (
-                                    <span className="text-xs bg-violet-100 text-violet-700 px-2 py-1 rounded-full">
+                                    <span className="text-xs bg-violet-100 text-violet-700 px-2 py-1 rounded-full font-medium">
                                         {searchResults.documents.length}개
                                     </span>
                                 )}
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto">
+                        <div className="flex-1 overflow-y-auto bg-gray-50">
                             {/* 로딩 상태 */}
                             {loading && (
                                 <div className="p-6 text-center">
@@ -421,12 +451,11 @@ function PetWalk() {
                 </div>
 
                 {/* 오른쪽 지도 영역 */}
-                <div className="flex-1 relative">
-                    <div id="map" className="w-full h-full"></div>
+                <div className="flex-1 relative bg-white">
+                    <div id="map" className="w-full h-full rounded-l-xl lg:rounded-l-none"></div>
 
                     {/* 지도 컨트롤 */}
-                    <div
-                        className="absolute top-4 right-4 flex flex-col bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+                    <div className="absolute top-4 right-4 flex flex-col bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                         <button
                             onClick={zoomIn}
                             className="p-3 hover:bg-gray-50 border-b border-gray-200 transition-colors"
@@ -452,26 +481,20 @@ function PetWalk() {
 
                     {/* 선택된 장소 정보 */}
                     {selectedPlace && (
-                        <div
-                            className="absolute top-4 left-4 bg-white rounded-lg shadow-xl border border-gray-200 p-4 max-w-sm">
+                        <div className="absolute top-4 left-4 bg-white rounded-xl shadow-2xl border border-gray-200 p-5 max-w-sm backdrop-blur-sm bg-white/95">
                             <div className="flex items-start justify-between mb-3">
                                 <h3 className="font-bold text-gray-900 text-lg flex-1 pr-3">{selectedPlace.place_name}</h3>
                                 <button
                                     onClick={() => setSelectedPlace(null)}
-                                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                                    className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
                                 >
-                                    <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd"
-                                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                              clipRule="evenodd"/>
-                                    </svg>
+                                    <FaTimes className="w-4 h-4 text-gray-400" />
                                 </button>
                             </div>
 
                             {selectedPlace.category_name && (
                                 <div className="mb-3">
-                                    <span
-                                        className="inline-block px-2 py-1 bg-violet-100 text-violet-700 text-xs font-medium rounded-full">
+                                    <span className="inline-block px-3 py-1 bg-violet-100 text-violet-700 text-xs font-medium rounded-full">
                                         {selectedPlace.category_name.split(' > ').pop()}
                                     </span>
                                 </div>
@@ -501,7 +524,7 @@ function PetWalk() {
                                 {selectedPlace.place_url && (
                                     <button
                                         onClick={() => openWebView(selectedPlace.place_url)}
-                                        className="w-full mt-4 bg-violet-500 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-violet-600 transition-colors"
+                                        className="w-full mt-4 bg-violet-500 text-white py-2.5 px-4 rounded-xl text-sm font-medium hover:bg-violet-600 transition-colors shadow-sm"
                                     >
                                         카카오맵에서 자세히 보기
                                     </button>
@@ -512,27 +535,31 @@ function PetWalk() {
                 </div>
             </div>
 
+            {/* 사이드바 마스크 (모바일용) */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 z-10 lg:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                ></div>
+            )}
+
             {/* WebView 모달 */}
             {showWebView && webViewUrl && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full h-[80vh] flex flex-col">
-                        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                            <h3 className="text-lg font-semibold text-gray-900">카카오맵</h3>
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full h-[85vh] flex flex-col">
+                        <div className="flex items-center justify-between p-5 border-b border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-900">카카오맵</h3>
                             <button
                                 onClick={closeWebView}
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                             >
-                                <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd"
-                                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                          clipRule="evenodd"/>
-                                </svg>
+                                <FaTimes className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 overflow-hidden">
                             <iframe
                                 src={webViewUrl}
-                                className="w-full h-full border-0 rounded-b-xl"
+                                className="w-full h-full border-0 rounded-b-2xl"
                                 title="카카오맵"
                                 sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                             />
@@ -542,6 +569,56 @@ function PetWalk() {
             )}
         </div>
     );
+}
+
+// CSS 스타일 추가
+const globalStyles = `
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-track {
+  background: #e5e7eb;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #8b5cf6;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.slider::-moz-range-track {
+  background: #e5e7eb;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.slider::-moz-range-thumb {
+  background: #8b5cf6;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+`;
+
+// 전역 스타일 주입
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = globalStyles;
+  document.head.appendChild(styleSheet);
 }
 
 export default PetWalk;
