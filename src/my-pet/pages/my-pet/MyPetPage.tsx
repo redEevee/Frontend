@@ -10,6 +10,7 @@ interface PetFormData {
     id?: number;
     type: 'dog' | 'cat' | 'other';
     name: string;
+    gender: '남아' | '여아' | '정보없음';
     breed: string;
     dob: string;
     imageFile?: File | null;
@@ -191,10 +192,10 @@ const MyPetPage: React.FC = () => {
                 id: Date.now(),
                 type: petData.type,
                 name: petData.name,
+                gender: petData.gender,
                 breed: petData.breed,
                 dob: petData.dob,
                 imageUrl,
-                gender: '정보없음', // 성별은 모달에서 받지 않으므로 기본값 설정
                 hasMicrochip: false, // 마이크로칩 정보는 모달에서 받지 않으므로 기본값 설정
                 isNeutered: false, // 중성화 정보는 모달에서 받지 않으므로 기본값 설정
                 dailyMission: generateRandomMissions(petData.type),
@@ -212,13 +213,17 @@ const MyPetPage: React.FC = () => {
         } else {
             newPets = pets.map(p => {
                 if (p.id === currentPet?.id) {
+                    const hasTypeChanged = p.type !== petData.type;
                     return {
                         ...p,
                         type: petData.type,
                         name: petData.name,
+                        gender: petData.gender,
                         breed: petData.breed,
                         dob: petData.dob,
-                        imageUrl
+                        imageUrl,
+                        dailyMission: hasTypeChanged ? generateRandomMissions(petData.type) : p.dailyMission,
+                        hasRerolledToday: hasTypeChanged ? false : p.hasRerolledToday,
                     };
                 }
                 return p;
