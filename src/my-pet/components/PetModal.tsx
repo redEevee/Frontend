@@ -1,16 +1,27 @@
 import {useState, useEffect, type ChangeEvent, useRef} from "react";
 import type {Pet} from "../types/types.ts";
 
+interface PetFormData {
+    id?: number;
+    type: 'dog' | 'cat' | 'other';
+    name: string;
+    gender: '남아' | '여아' | '정보없음';
+    breed: string;
+    dob: string;
+    imageFile?: File | null;
+}
+
 interface PetModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (petData: Omit<Pet, 'id'> & { id?: number; imageFile?: File | null }) => void;
+    onSave: (petData: PetFormData) => void;
     mode: 'add' | 'edit';
     pet: Pet | null;
 }
 
 const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet}) => {
     const [type, setType] = useState<'dog' | 'cat' | 'other'>('dog');
+    const [gender, setGender] = useState<'남아' | '여아' | '정보없음'>('정보없음');
 
     const [name, setName] = useState('');
     const [breed, setBreed] = useState('');
@@ -23,14 +34,14 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
         if (isOpen) {
             if (mode === 'edit' && pet) {
                 setType(pet.type);
-
+                setGender(pet.gender);
                 setName(pet.name);
                 setBreed(pet.breed);
                 setDob(pet.dob);
                 setImagePreview(pet.imageUrl);
             } else {
                 setType('dog');
-
+                setGender('정보없음');
                 setName('');
                 setBreed('');
                 setDob('');
@@ -58,15 +69,11 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
         onSave({
             id: pet?.id,
             type,
+            gender,
             name,
             breed,
             dob,
             imageFile,
-            gender: pet?.gender || '남아',
-            hasMicrochip: pet?.hasMicrochip || false,
-            isNeutered: pet?.isNeutered || false,
-            dailyMission: pet?.dailyMission || [],
-            imageUrl: ""
         });
     };
 
@@ -138,6 +145,46 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
                         >
                             <i className="fas fa-paw sm:mr-2"></i>
                             <span className="hidden sm:inline">기타</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* 성별 영역 */}
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">성별</label>
+                    <div className="flex gap-2 sm:gap-4">
+                        <button
+                            onClick={() => setGender('남아')}
+                            className={`flex-1 py-3 px-2 sm:px-4 rounded-lg border-2 transition text-center ${
+                                gender === '남아'
+                                ? 'bg-blue-500 border-blue-500 text-white shadow-lg'
+                                : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            <i className="fas fa-mars sm:mr-2"></i>
+                            <span className="hidden sm:inline">남아</span>
+                        </button>
+                        <button
+                            onClick={() => setGender('여아')}
+                            className={`flex-1 py-3 px-2 sm:px-4 rounded-lg border-2 transition text-center ${
+                                gender === '여아'
+                                    ? 'bg-pink-500 border-pink-500 text-white shadow-lg'
+                                    : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            <i className="fas fa-venus sm:mr-2"></i>
+                            <span className="hidden sm:inline">여아</span>
+                        </button>
+                        <button
+                            onClick={() => setGender('정보없음')}
+                            className={`flex-1 py-3 px-2 sm:px-4 rounded-lg border-2 transition text-center ${
+                                gender === '정보없음'
+                                ? 'bg-blue-500 border-blue-500 text-white shadow-lg'
+                                    : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'
+                            }`}
+                        >
+                            <i className="fas fa-question sm:mr-2"></i>
+                            <span className="hidden sm:inline">모름</span>
                         </button>
                     </div>
                 </div>
