@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import type {Pet} from '../types/types.ts';
 import { useNavigate } from 'react-router-dom';
+import { getDefaultImageUrl } from '../utils/petUtils.ts';
 
 interface PetProfileCardProps {
     pet: Pet;
@@ -27,8 +28,7 @@ const PetProfileCard: React.FC<PetProfileCardProps> = ({ pet, onEdit, onOpenConf
 
     // 프로필 이미지 로딩에 실패했을 때, 기본 이미지로 바꿔주는 함수
     const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-        e.currentTarget.src = `https://placehold.co/150x150/E0E7FF/4F46E5?text=🐾`;
-        e.currentTarget.classList.add('p-4');
+        e.currentTarget.src = getDefaultImageUrl(pet.type);
     };
 
     return (
