@@ -1,10 +1,19 @@
 import {useState, useEffect, type ChangeEvent, useRef} from "react";
 import type {Pet} from "../types/types.ts";
 
+interface PetFormData {
+    id?: number;
+    type: 'dog' | 'cat' | 'other';
+    name: string;
+    breed: string;
+    dob: string;
+    imageFile?: File | null;
+}
+
 interface PetModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (petData: Omit<Pet, 'id'> & { id?: number; imageFile?: File | null }) => void;
+    onSave: (petData: PetFormData) => void;
     mode: 'add' | 'edit';
     pet: Pet | null;
 }
@@ -62,11 +71,6 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
             breed,
             dob,
             imageFile,
-            gender: pet?.gender || '남아',
-            hasMicrochip: pet?.hasMicrochip || false,
-            isNeutered: pet?.isNeutered || false,
-            dailyMission: pet?.dailyMission || [],
-            imageUrl: ""
         });
     };
 

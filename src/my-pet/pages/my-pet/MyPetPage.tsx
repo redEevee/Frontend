@@ -1,9 +1,19 @@
-import { useState, useEffect } from 'react';
-import type {Pet, DailyMission} from '../types/types.ts';
-import PetProfileCard from '../components/PetProfileCard.tsx';
-import PetModal from '../components/PetModal.tsx';
-import AlertNotification from '../../shared/components/AlertNotification.tsx';
-import ConfirmModal from '../components/ConfirmModel.tsx';
+import {useState, useEffect} from 'react';
+import type {Pet, DailyMission} from '../../types/types.ts';
+import PetProfileCard from '../../components/PetProfileCard.tsx';
+import PetModal from '../../components/PetModal.tsx';
+import AlertNotification from '../../../shared/components/AlertNotification.tsx';
+import ConfirmModal from '../../components/ConfirmModel.tsx';
+
+// PetModal에서 전달하는 데이터 타입을 정의합니다.
+interface PetFormData {
+    id?: number;
+    type: 'dog' | 'cat' | 'other';
+    name: string;
+    breed: string;
+    dob: string;
+    imageFile?: File | null;
+}
 
 // 데일리미션 설정
 const MISSION_POOL = {
@@ -37,7 +47,7 @@ const MISSION_POOL = {
 
 const generateRandomMissions = (petType: 'dog' | 'cat' | 'other'): DailyMission[] => {
     const pool = MISSION_POOL[petType];
-    const missionCount = Math.floor(Math.random() * 6) + 5;
+    const missionCount = Math.floor(Math.random() * 5) + 1;
     const shuffled = [...pool].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, missionCount).map(task => ({
         task,
@@ -46,18 +56,42 @@ const generateRandomMissions = (petType: 'dog' | 'cat' | 'other'): DailyMission[
 };
 
 // 샘플데이터
-const initialPetsData: Omit<Pet, 'dailyMission' | 'hasRerolledToday' | 'lastMissionDate'>[] = [
+const initialPetsData: Omit<Pet,
+    'dailyMission' | 'hasRerolledToday' | 'lastMissionDate' |
+    'freeReportCount' | 'weightRecords' | 'healthNotes' | 'heatCycles' | 'aiReports'
+>[] = [
     {
-        id: 1, type: 'dog', name: '왕만두', gender: '남아', breed: '비숑 프리제', dob: '2022-04-13',
-        hasMicrochip: true, isNeutered: true, imageUrl: 'https://images.unsplash.com/photo-1596492784533-7647fb21b038?q=80&w=800',
+        id: 1,
+        type: 'dog',
+        name: '왕만두',
+        gender: '남아',
+        breed: '비숑 프리제',
+        dob: '2022-04-13',
+        hasMicrochip: true,
+        isNeutered: true,
+        imageUrl: 'https://images.unsplash.com/photo-1596492784533-7647fb21b038?q=80&w=800'
     },
     {
-        id: 2, type: 'cat', name: '정범이', gender: '여아', breed: '에겐 대장', dob: '1999-09-28',
-        hasMicrochip: true, isNeutered: false, imageUrl: 'https://images.unsplash.com/photo-1574158622682-e40e6984100d?q=80&w=800',
+        id: 2,
+        type: 'cat',
+        name: '정범이',
+        gender: '여아',
+        breed: '코리안 숏헤어',
+        dob: '2020-09-28',
+        hasMicrochip: true,
+        isNeutered: false,
+        imageUrl: 'https://images.unsplash.com/photo-1574158622682-e40e6984100d?q=80&w=800'
     },
     {
-        id: 3, type: 'other', name: '코코', gender: '남아', breed: '왕관앵무', dob: '2023-01-15',
-        hasMicrochip: false, isNeutered: false, imageUrl: 'https://images.unsplash.com/photo-1542062700-942D5534d4d7?q=80&w=800',
+        id: 3,
+        type: 'other',
+        name: '코코',
+        gender: '남아',
+        breed: '왕관앵무',
+        dob: '2023-01-15',
+        hasMicrochip: false,
+        isNeutered: false,
+        imageUrl: 'https://images.unsplash.com/photo-1542062700-942D5534d4d7?q=80&w=800'
     }
 ];
 
@@ -66,7 +100,7 @@ const MyPetPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [currentPet, setCurrentPet] = useState<Pet | null>(null);
-    const [alert, setAlert] = useState<{ message: string; show: boolean }>({ message: '', show: false });
+    const [alert, setAlert] = useState<{ message: string; show: boolean }>({message: '', show: false});
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [petToDeleteId, setPetToDeleteId] = useState<number | null>(null);
 
@@ -78,22 +112,35 @@ const MyPetPage: React.FC = () => {
         if (savedPetsData) {
             const parsedPets: Pet[] = JSON.parse(savedPetsData);
             petsToLoad = parsedPets.map(pet => {
-                if (pet.lastMissionDate !== today) {
+                // 데이터 마이그레이션: 기존 펫 데이터에 새로운 필드를 추가합니다.
+                const migratedPet = {
+                    ...pet,
+                    freeReportCount: typeof pet.freeReportCount === 'number' ? pet.freeReportCount : 3,
+                    aiReports: Array.isArray(pet.aiReports) ? pet.aiReports : [],
+                };
+
+                if (migratedPet.lastMissionDate !== today) {
                     return {
-                        ...pet,
-                        dailyMission: generateRandomMissions(pet.type),
+                        ...migratedPet,
+                        dailyMission: generateRandomMissions(migratedPet.type),
                         hasRerolledToday: false,
                         lastMissionDate: today
                     };
                 }
-                return pet;
+                return migratedPet;
             });
         } else {
             petsToLoad = initialPetsData.map(p => ({
                 ...p,
                 dailyMission: generateRandomMissions(p.type),
                 hasRerolledToday: false,
-                lastMissionDate: today
+                lastMissionDate: today,
+
+                freeReportCount: 3,
+                weightRecords: [],
+                healthNotes: [],
+                heatCycles: [],
+                aiReports: [],
             }));
         }
         setPets(petsToLoad);
@@ -107,17 +154,17 @@ const MyPetPage: React.FC = () => {
 
     // 알림 메시지 표시
     const showAlert = (message: string) => {
-        setAlert({ message, show: true });
-        setTimeout(() => setAlert({ message: '', show: false }), 3000);
+        setAlert({message, show: true});
+        setTimeout(() => setAlert({message: '', show: false}), 3000);
     };
 
     const handleToggleMission = (petId: number, task: string) => {
         const newPets = pets.map(pet => {
             if (pet.id === petId) {
                 const updatedMissions = pet.dailyMission.map(mission =>
-                    mission.task === task ? { ...mission, done: !mission.done } : mission
+                    mission.task === task ? {...mission, done: !mission.done} : mission
                 );
-                return { ...pet, dailyMission: updatedMissions };
+                return {...pet, dailyMission: updatedMissions};
             }
             return pet;
         });
@@ -128,23 +175,54 @@ const MyPetPage: React.FC = () => {
         const newPets = pets.map(pet => {
             if (pet.id === petId && !pet.hasRerolledToday) {
                 showAlert(`${pet.name}의 미션을 새로고침합니다!`);
-                return { ...pet, dailyMission: generateRandomMissions(pet.type), hasRerolledToday: true };
+                return {...pet, dailyMission: generateRandomMissions(pet.type), hasRerolledToday: true};
             }
             return pet;
         });
         updatePetsData(newPets);
     };
 
-    const handleSavePet = (petData: Omit<Pet, 'id' | 'imageUrl' | 'dailyMission' | 'hasRerolledToday' | 'lastMissionDate'> & { id?: number; imageFile?: File | null }) => {
+    const handleSavePet = (petData: PetFormData) => {
         const imageUrl = petData.imageFile ? URL.createObjectURL(petData.imageFile) : (modalMode === 'edit' && currentPet) ? currentPet.imageUrl : `https://placehold.co/150x150/E0E7FF/4F46E5?text=🐾`;
         let newPets: Pet[];
 
         if (modalMode === 'add') {
-            const newPet: Pet = { ...petData, id: Date.now(), imageUrl, dailyMission: generateRandomMissions(petData.type), hasRerolledToday: false, lastMissionDate: new Date().toISOString().slice(0, 10) };
+            const newPet: Pet = {
+                id: Date.now(),
+                type: petData.type,
+                name: petData.name,
+                breed: petData.breed,
+                dob: petData.dob,
+                imageUrl,
+                gender: '정보없음', // 성별은 모달에서 받지 않으므로 기본값 설정
+                hasMicrochip: false, // 마이크로칩 정보는 모달에서 받지 않으므로 기본값 설정
+                isNeutered: false, // 중성화 정보는 모달에서 받지 않으므로 기본값 설정
+                dailyMission: generateRandomMissions(petData.type),
+                hasRerolledToday: false,
+                lastMissionDate: new Date().toISOString().slice(0, 10),
+                freeReportCount: 3,
+                weightRecords: [],
+                healthNotes: [],
+                heatCycles: [],
+                aiReports: [],
+            };
+
             newPets = [...pets, newPet];
             showAlert('새로운 펫이 등록되었습니다!');
         } else {
-            newPets = pets.map(p => (p.id === currentPet?.id ? { ...p, ...petData, imageUrl } : p));
+            newPets = pets.map(p => {
+                if (p.id === currentPet?.id) {
+                    return {
+                        ...p,
+                        type: petData.type,
+                        name: petData.name,
+                        breed: petData.breed,
+                        dob: petData.dob,
+                        imageUrl
+                    };
+                }
+                return p;
+            });
             showAlert(`${petData.name}의 정보가 수정되었습니다.`);
         }
         updatePetsData(newPets);
@@ -180,7 +258,7 @@ const MyPetPage: React.FC = () => {
     };
 
     return (
-        <div className="bg-gray-50 min-h-screen p-12 md:p-32">
+        <div className="bg-gray-50 min-h-screen p-12 md:p-32`">
             <header className="flex justify-between items-center mb-8">
                 <h1 className="text-4xl font-bold text-gray-800">나의 펫</h1>
                 <button
@@ -213,9 +291,12 @@ const MyPetPage: React.FC = () => {
                 )}
             </main>
 
-            <PetModal isOpen={isModalOpen} onClose={handleCloseModal} onSave={handleSavePet} mode={modalMode} pet={currentPet} />
-            <AlertNotification message={alert.message} show={alert.show} onClose={() => setAlert({ ...alert, show: false })} />
-            <ConfirmModal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={handleConfirmDelete} title="삭제 확인" message="나의 펫을 정말 삭제하시겠어요?" />
+            <PetModal isOpen={isModalOpen} onClose={handleCloseModal} onSave={handleSavePet} mode={modalMode}
+                      pet={currentPet}/>
+            <AlertNotification message={alert.message} show={alert.show}
+                               onClose={() => setAlert({...alert, show: false})}/>
+            <ConfirmModal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={handleConfirmDelete}
+                          title="삭제 확인" message="나의 펫을 정말 삭제하시겠어요?"/>
         </div>
     );
 };
