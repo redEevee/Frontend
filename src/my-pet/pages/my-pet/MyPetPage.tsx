@@ -13,7 +13,7 @@ interface PetFormData {
     gender: '남아' | '여아' | '정보없음';
     breed: string;
     dob: string;
-    imageFile?: File | null;
+    imageDataUrl?: string | null;
 }
 
 // 데일리미션 설정
@@ -113,11 +113,12 @@ const MyPetPage: React.FC = () => {
         if (savedPetsData) {
             const parsedPets: Pet[] = JSON.parse(savedPetsData);
             petsToLoad = parsedPets.map(pet => {
-                // 데이터 마이그레이션: 기존 펫 데이터에 새로운 필드를 추가합니다.
+                // 데이터 마이그레이션: 기존 펫 데이터에 새로운 필드를 추가하고 잘못된 이미지 URL을 수정합니다.
                 const migratedPet = {
                     ...pet,
                     freeReportCount: typeof pet.freeReportCount === 'number' ? pet.freeReportCount : 3,
                     aiReports: Array.isArray(pet.aiReports) ? pet.aiReports : [],
+                    imageUrl: (pet.imageUrl && pet.imageUrl.startsWith('blob:')) ? `https://placehold.co/150x150/E0E7FF/4F46E5?text=🐾` : pet.imageUrl,
                 };
 
                 if (migratedPet.lastMissionDate !== today) {
@@ -184,7 +185,7 @@ const MyPetPage: React.FC = () => {
     };
 
     const handleSavePet = (petData: PetFormData) => {
-        const imageUrl = petData.imageFile ? URL.createObjectURL(petData.imageFile) : (modalMode === 'edit' && currentPet) ? currentPet.imageUrl : `https://placehold.co/150x150/E0E7FF/4F46E5?text=🐾`;
+        const imageUrl = petData.imageDataUrl || ((modalMode === 'edit' && currentPet) ? currentPet.imageUrl : `https://placehold.co/150x150/E0E7FF/4F46E5?text=🐾`);
         let newPets: Pet[];
 
         if (modalMode === 'add') {

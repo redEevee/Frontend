@@ -8,7 +8,7 @@ interface PetFormData {
     gender: '남아' | '여아' | '정보없음';
     breed: string;
     dob: string;
-    imageFile?: File | null;
+    imageDataUrl?: string | null;
 }
 
 interface PetModalProps {
@@ -73,7 +73,7 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
             name,
             breed,
             dob,
-            imageFile,
+            imageDataUrl: imagePreview,
         });
     };
 
