@@ -179,7 +179,7 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
                             onClick={() => setGender('정보없음')}
                             className={`flex-1 py-3 px-2 sm:px-4 rounded-lg border-2 transition text-center ${
                                 gender === '정보없음'
-                                ? 'bg-blue-500 border-blue-500 text-white shadow-lg'
+                                ? 'bg-gray-500 border-gray-500 text-white shadow-lg'
                                     : 'bg-gray-100 border-gray-200 text-gray-600 hover:bg-gray-200'
                             }`}
                         >
