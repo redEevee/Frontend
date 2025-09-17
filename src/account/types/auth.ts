@@ -8,7 +8,7 @@ export interface User {
 }
 
 export interface LoginRequest {
-  email: string;
+  id: string;
   password: string;
 }
 
@@ -19,9 +19,9 @@ export interface LoginResponse {
 }
 
 export interface RegisterRequest {
-  email: string;
+  id: string;
   password: string;
-  username: string;
+  name: string;
 }
 
 export interface AuthState {
