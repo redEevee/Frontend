@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
-import type { AuthState, User, LoginRequest } from '../types/auth';
+import type { AuthState, User, LoginRequest, RegisterRequest } from '../types/auth';
 import { authService } from '../services';
 
 interface AuthAction {
-  type: 'LOGIN_START' | 'LOGIN_SUCCESS' | 'LOGIN_FAILURE' | 'LOGOUT' | 'RESTORE_AUTH';
+  type: 'LOGIN_START' | 'LOGIN_SUCCESS' | 'LOGIN_FAILURE' | 'LOGOUT' | 'RESTORE_AUTH' | 'REGISTER_START' | 'REGISTER_SUCCESS' | 'REGISTER_FAILURE';
   payload?: any;
 }
 
@@ -17,6 +17,7 @@ const initialState: AuthState = {
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   switch (action.type) {
     case 'LOGIN_START':
+    case 'REGISTER_START':
       return { ...state, isLoading: true };
     
     case 'LOGIN_SUCCESS':
@@ -29,10 +30,18 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       };
     
     case 'LOGIN_FAILURE':
+    case 'REGISTER_FAILURE':
       return {
         ...state,
         user: null,
         token: null,
+        isLoading: false,
+        isAuthenticated: false,
+      };
+
+    case 'REGISTER_SUCCESS':
+      return {
+        ...state,
         isLoading: false,
         isAuthenticated: false,
       };
@@ -55,6 +64,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 
 interface AuthContextType extends AuthState {
   login: (data: LoginRequest) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -101,6 +111,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const register = async (data: RegisterRequest) => {
+    try {
+      dispatch({ type: 'REGISTER_START' });
+      await authService.register(data);
+      dispatch({ type: 'REGISTER_SUCCESS' });
+    } catch (error) {
+      dispatch({ type: 'REGISTER_FAILURE' });
+      throw error;
+    }
+  };
+
   const logout = async () => {
     try {
       await authService.logout();
@@ -117,6 +138,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const value: AuthContextType = {
     ...state,
     login,
+    register,
     logout,
   };
 
