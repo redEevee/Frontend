@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks';
 import {FaEye, FaEyeSlash, FaUser, FaLock} from "react-icons/fa";
 
@@ -7,6 +8,7 @@ interface LoginFormProps {
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
+  const navigate = useNavigate();
   const { login, isLoading } = useAuth();
   const [formData, setFormData] = useState({
     id: '',
@@ -41,10 +43,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   return (
     <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
       <div className="text-center mb-6">
-        <img 
-          src="/Logo.png" 
-          alt="My Real Pet Logo" 
-          className="mx-auto h-32 w-auto mb-3"
+        <img
+          src="/Logo.png"
+          alt="My Real Pet Logo"
+          className="mx-auto h-32 w-auto mb-3 cursor-pointer"
+          onClick={() => navigate('/')}
           onError={(e) => {
             console.error('Logo failed to load');
             e.currentTarget.style.display = 'none';

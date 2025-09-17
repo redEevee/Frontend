@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaHeart, FaComment, FaShare, FaBookmark, FaEllipsisH } from 'react-icons/fa';
+import {
+    FaDog,
+    FaCat,
+    FaHeart,
+    FaWalking,
+    FaBaby,
+    FaStar, FaEllipsisH, FaComment, FaShare, FaBookmark
+} from 'react-icons/fa';
 import { MdKeyboardArrowLeft, MdKeyboardArrowRight } from 'react-icons/md';
 
 interface Post {
@@ -20,6 +27,15 @@ function PetSns() {
     const [direction, setDirection] = useState(0);
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const categories = [
+        { name: "강아지", icon: <FaDog />, image: "/images/friends.jpg" },
+        { name: "고양이", icon: <FaCat />, image: "/images/share.jpg" },
+        { name: "개냥이", icon: <FaHeart />, image: "/images/like.jpg" }, // '사랑스러운 반려동물' 느낌
+        { name: "산책", icon: <FaWalking />, image: "/images/walk.jpg" }, // 산책, 걷기
+        { name: "아기고양이", icon: <FaBaby />, image: "/images/calendar.jpg" }, // 아기 냥이
+        { name: "재롱", icon: <FaStar />, image: "/images/management.jpg" }, // 귀여운 재롱
+    ];
 
     // 샘플 데이터 생성
     useEffect(() => {
@@ -278,7 +294,42 @@ function PetSns() {
                         />
                     ))}
                 </div>
+
             </div>
+
+            <section className="py-16 pt-36 bg-violet-500">
+                <div className="container mx-auto px-4">
+                    <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
+                        카테고리
+                    </h2>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {categories.map((cat, idx) => (
+                            <div
+                                key={idx}
+                                className="relative cursor-pointer group rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300"
+                            >
+                                {/* 배경 이미지 */}
+                                <div
+                                    className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                                    style={{ backgroundImage: `url(${cat.image})` }}
+                                ></div>
+
+                                {/* 오버레이 */}
+                                <div className="absolute inset-0 bg-black bg-opacity-40 group-hover:bg-opacity-20 transition-colors duration-300"></div>
+
+                                {/* 텍스트 & 아이콘 */}
+                                <div className="relative z-10 flex flex-col items-center justify-center h-64 text-white text-center p-4">
+                                    <div className="text-4xl mb-4">{cat.icon}</div>
+                                    <h3 className="text-xl font-semibold">{cat.name}</h3>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+
         </div>
     );
 }
