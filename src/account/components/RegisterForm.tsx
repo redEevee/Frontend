@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks';
-import {FaEye, FaEyeSlash, FaUser, FaLock} from "react-icons/fa";
+import {FaEye, FaEyeSlash, FaUser, FaLock, FaPhone} from "react-icons/fa";
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -15,6 +15,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     password: '',
     confirmPassword: '',
     name: '',
+    phoneNumber: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -27,7 +28,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   };
 
   const validateForm = () => {
-    if (!formData.id || !formData.password || !formData.confirmPassword || !formData.name) {
+    if (!formData.id || !formData.password || !formData.confirmPassword || !formData.name || !formData.phoneNumber) {
       setError('모든 필드를 입력해주세요.');
       return false;
     }
@@ -39,6 +40,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
 
     if (formData.password.length < 8) {
       setError('비밀번호는 8자 이상이어야 합니다.');
+      return false;
+    }
+
+    const phoneRegex = /^010-\d{4}-\d{4}$/;
+    if (!phoneRegex.test(formData.phoneNumber)) {
+      setError('핸드폰번호는 010-0000-0000 형식으로 입력해주세요.');
       return false;
     }
 
@@ -63,7 +70,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+    <div className="w-full max-w-2xl mx-auto bg-white rounded-lg shadow-md px-12 py-8">
       <div className="text-center mb-6">
         <img
           src="/Logo.png"
@@ -76,30 +83,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
           }}
           onLoad={() => console.log('Logo loaded successfully')}
         />
-        <p className="text-2xl text-gray-600 mb-8">
+        <p className="text-2xl text-gray-600 mb-12">
           <span className="text-blue-600 font-semibold">반려동물</span>과 함께할<br />계정을 만들어보세요
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-              <FaUser />
-            </div>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="이름을 입력하세요"
-              disabled={isLoading}
-            />
-          </div>
-        </div>
-
+      <form onSubmit={handleSubmit} className="space-y-8">
         <div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
@@ -111,13 +100,12 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               name="id"
               value={formData.id}
               onChange={handleInputChange}
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-3 py-2 border-0 border-b border-gray-300 bg-transparent focus:outline-none"
               placeholder="아이디를 입력하세요"
               disabled={isLoading}
             />
           </div>
         </div>
-
 
         <div>
           <div className="relative">
@@ -130,8 +118,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               name="password"
               value={formData.password}
               onChange={handleInputChange}
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="비밀번호를 입력하세요 (8자 이상)"
+              className="w-full pl-10 pr-10 py-2 border-0 border-b border-gray-300 bg-transparent focus:outline-none"
+              placeholder="비밀번호를 입력하세요"
               disabled={isLoading}
             />
             <button
@@ -156,7 +144,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleInputChange}
-              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-10 py-2 border-0 border-b border-gray-300 bg-transparent focus:outline-none"
               placeholder="비밀번호를 다시 입력하세요"
               disabled={isLoading}
             />
@@ -171,6 +159,42 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
           </div>
         </div>
 
+        <div>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+              <FaUser />
+            </div>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              className="w-full pl-10 pr-3 py-2 border-0 border-b border-gray-300 bg-transparent focus:outline-none"
+              placeholder="이름을 입력하세요"
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+
+        <div>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+              <FaPhone />
+            </div>
+            <input
+              type="tel"
+              id="phoneNumber"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleInputChange}
+              className="w-full pl-10 pr-3 py-2 border-0 border-b border-gray-300 bg-transparent focus:outline-none"
+              placeholder="핸드폰 번호를 입력하세요"
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
             {error}
@@ -180,7 +204,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-medium py-2 px-4 rounded-md transition duration-200"
+          className="w-full bg-blue-500 disabled:bg-green-300 text-white font-medium py-2 px-4 rounded-md transition duration-200"
         >
           {isLoading ? '회원가입 중...' : '회원가입'}
         </button>

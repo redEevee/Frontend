@@ -22,6 +22,7 @@ export interface RegisterRequest {
   id: string;
   password: string;
   name: string;
+  phoneNumber: string;
 }
 
 export interface AuthState {

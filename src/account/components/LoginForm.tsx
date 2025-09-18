@@ -113,7 +113,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-green-500 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium py-2 px-4 rounded-md transition duration-200"
+          className="w-full bg-blue-500 disabled:bg-blue-300 text-white font-medium py-2 px-4 rounded-md transition duration-200"
         >
           {isLoading ? '로그인 중...' : '로그인'}
         </button>
