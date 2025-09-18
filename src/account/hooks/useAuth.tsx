@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
-import type { AuthState, User, LoginRequest, RegisterRequest } from '../types/auth';
+import type { AuthState, LoginRequest, RegisterRequest } from '../types/auth';
 import { authService } from '../services';
 
 interface AuthAction {
   type: 'LOGIN_START' | 'LOGIN_SUCCESS' | 'LOGIN_FAILURE' | 'LOGOUT' | 'RESTORE_AUTH' | 'REGISTER_START' | 'REGISTER_SUCCESS' | 'REGISTER_FAILURE';
-  payload?: any;
+  payload?: unknown;
 }
 
 const initialState: AuthState = {
@@ -84,10 +84,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           type: 'RESTORE_AUTH', 
           payload: { user, token } 
         });
-      } catch (error) {
+      } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        localStorage.removeItem('refreshToken');
       }
     }
   }, []);
@@ -96,14 +95,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       dispatch({ type: 'LOGIN_START' });
       const response = await authService.login(data);
-      
+
+      const user = {
+        accountId: response.accountId,
+        username: response.username,
+      };
+
       localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      localStorage.setItem('refreshToken', response.refreshToken);
-      
-      dispatch({ 
-        type: 'LOGIN_SUCCESS', 
-        payload: { user: response.user, token: response.token } 
+      localStorage.setItem('user', JSON.stringify(user));
+
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: { user, token: response.token }
       });
     } catch (error) {
       dispatch({ type: 'LOGIN_FAILURE' });
@@ -130,7 +133,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      localStorage.removeItem('refreshToken');
       dispatch({ type: 'LOGOUT' });
     }
   };
