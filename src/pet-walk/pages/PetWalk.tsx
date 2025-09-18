@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useEffect, useState, useCallback, useMemo, useRef} from "react";
 import {FaSearch, FaMapMarkerAlt, FaChevronDown, FaChevronUp, FaTimes, FaBars} from "react-icons/fa";
 import {useMaps} from "../hooks/useMaps.ts";
 
@@ -10,6 +10,7 @@ function PetWalk() {
         searchResults,
         selectedPlace,
         error,
+        setError,
         loading,
         locationLoading,
         currentLocation,
@@ -24,16 +25,51 @@ function PetWalk() {
         getCurrentLocation,
         searchNearbyPlaces,
         searchNearbyPlacesByMapCenter,
+        handleMapDragEnd,
         moveToCurrentLocation,
         handleRadiusChange
     } = useMaps();
 
     const [selectedCategory, setSelectedCategory] = useState("동물병원");
-    const [searchMode, setSearchMode] = useState<'current' | 'mapCenter'>('current');
+    const [searchMode, setSearchMode] = useState<'gps' | 'mapCenter'>('gps');
     const [initialSearchDone, setInitialSearchDone] = useState(false);
     const [isSearchPanelOpen, setIsSearchPanelOpen] = useState(true);
     const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+    // 디바운싱을 위한 ref
+    const radiusSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const categories = useMemo(() => [
+        {id: "동물병원", label: "동물병원", emoji: "🏥"},
+        {id: "펫샵", label: "펫샵", emoji: "🛍️"},
+        {id: "애견미용", label: "애견미용", emoji: "✂️"},
+        {id: "애견공원", label: "애견공원", emoji: "🌳"},
+        {id: "애견카페", label: "애견카페", emoji: "☕"},
+        {id: "애견호텔", label: "애견호텔", emoji: "🏨"}
+    ], []);
+
+    // 카테고리 검색 (메모이제이션)
+    const handleCategorySearch = useCallback(async (category: string) => {
+        // 검색 중이면 무시
+        if (loading) return;
+
+        setSelectedCategory(category);
+        setSelectedPlace(null); // 이전 선택된 장소 정보 초기화
+
+        switch (searchMode) {
+            case 'gps':
+                if (currentLocation) {
+                    await searchNearbyPlaces(category);
+                } else {
+                    getCurrentLocation();
+                }
+                break;
+            case 'mapCenter':
+                await searchNearbyPlacesByMapCenter(category);
+                break;
+        }
+    }, [loading, searchMode, currentLocation, searchNearbyPlaces, searchNearbyPlacesByMapCenter, getCurrentLocation, setError]);
 
     // 지도 초기화
     useEffect(() => {
@@ -53,36 +89,19 @@ function PetWalk() {
             handleCategorySearch(selectedCategory);
             setInitialSearchDone(true);
         }
-    }, [currentLocation, initialSearchDone]);
+    }, [currentLocation, initialSearchDone, handleCategorySearch, selectedCategory]);
 
-    const categories = [
-        {id: "동물병원", label: "동물병원", emoji: "🏥"},
-        {id: "펫샵", label: "펫샵", emoji: "🛍️"},
-        {id: "애견미용", label: "애견미용", emoji: "✂️"},
-        {id: "애견공원", label: "애견공원", emoji: "🌳"},
-        {id: "애견카페", label: "애견카페", emoji: "☕"},
-        {id: "애견호텔", label: "애견호텔", emoji: "🏨"},
-    ];
-
-    // 카테고리 검색
-    const handleCategorySearch = async (category: string) => {
-        setSelectedCategory(category);
-
-        if (searchMode === 'current') {
-            if (currentLocation) {
-                await searchNearbyPlaces(category);
-            } else {
-                // 위치가 없으면 위치 확인 먼저
-                getCurrentLocation();
+    // cleanup 함수
+    useEffect(() => {
+        return () => {
+            if (radiusSearchTimeoutRef.current) {
+                clearTimeout(radiusSearchTimeoutRef.current);
             }
-        } else {
-            // 지도 중심 기준 검색
-            await searchNearbyPlacesByMapCenter(category);
-        }
-    };
+        };
+    }, []);
 
-    // 검색 버튼 클릭
-    const handleSearchClick = () => {
+    // 검색 버튼 클릭 (메모이제이션)
+    const handleSearchClick = useCallback(() => {
         if (searchKeyword.trim()) {
             // 키워드 검색
             handleKeyUp({key: 'Enter'} as React.KeyboardEvent);
@@ -90,21 +109,48 @@ function PetWalk() {
             // 카테고리 재검색
             handleCategorySearch(selectedCategory);
         }
-    };
+    }, [searchKeyword, selectedCategory, handleKeyUp, handleCategorySearch]);
 
-    // 반경 변경 시 자동 재검색
-    const handleRadiusChangeWithSearch = (radius: number) => {
-        handleRadiusChange(radius);
+    // 검색 모드 변경 핸들러 (메모이제이션)
+    const handleSearchModeChange = useCallback((newMode: 'gps' | 'mapCenter') => {
+        if (newMode === searchMode) return; // 같은 모드면 무시
+
+        setSearchMode(newMode);
+        setSelectedPlace(null); // 선택된 장소 초기화
+
+        // 새로운 모드에서 검색 가능하면 자동 재검색
         if (selectedCategory) {
             setTimeout(() => {
-                if (searchMode === 'current' && currentLocation) {
-                    searchNearbyPlaces(selectedCategory);
-                } else if (searchMode === 'mapCenter') {
-                    searchNearbyPlacesByMapCenter(selectedCategory);
+                switch (newMode) {
+                    case 'gps':
+                        if (currentLocation) {
+                            searchNearbyPlaces(selectedCategory);
+                        }
+                        // GPS 모드인데 위치가 없으면 사용자가 수동으로 위치 찾기 버튼 클릭해야 함
+                        break;
+                    case 'mapCenter':
+                        searchNearbyPlacesByMapCenter(selectedCategory);
+                        break;
                 }
-            }, 300);
+            }, 100);
         }
-    };
+    }, [searchMode, selectedCategory, currentLocation, searchNearbyPlaces, searchNearbyPlacesByMapCenter]);
+
+
+    // 반경 변경 시 자동 재검색 (디바운싱 강화)
+    const handleRadiusChangeWithSearch = useCallback((radius: number) => {
+        handleRadiusChange(radius);
+
+        if (radiusSearchTimeoutRef.current) {
+            clearTimeout(radiusSearchTimeoutRef.current);
+        }
+
+        if (selectedCategory && !loading) {
+            radiusSearchTimeoutRef.current = setTimeout(() => {
+                handleCategorySearch(selectedCategory);
+            }, 600);
+        }
+    }, [selectedCategory, loading, handleRadiusChange, handleCategorySearch]);
 
     // 거리 계산 함수
     const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -128,27 +174,27 @@ function PetWalk() {
         }
     };
 
-    // 지도 확대/축소
-    const zoomIn = () => {
+    // 지도 확대/축소 (메모이제이션)
+    const zoomIn = useCallback(() => {
         if (map.instance) {
             const currentLevel = map.instance.getLevel();
             if (currentLevel > 1) {
                 map.instance.setLevel(currentLevel - 1);
             }
         }
-    };
+    }, [map.instance]);
 
-    const zoomOut = () => {
+    const zoomOut = useCallback(() => {
         if (map.instance) {
             const currentLevel = map.instance.getLevel();
             if (currentLevel < 14) {
                 map.instance.setLevel(currentLevel + 1);
             }
         }
-    };
+    }, [map.instance]);
 
     return (
-        <div className="h-screen pt-16 bg-violet-500 relative overflow-hidden">
+        <div className="h-screen pt-16 bg-gray-50 relative overflow-hidden">
             {/* 모바일 햄버거 메뉴 */}
             <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -185,7 +231,7 @@ function PetWalk() {
                                     value={searchKeyword}
                                     onChange={(e) => setSearchKeyword(e.target.value)}
                                     onKeyUp={handleKeyUp}
-                                    className="w-full bg-gray-50 rounded-xl px-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:bg-white border border-gray-200 transition-all"
+                                    className="w-full bg-gray-50 rounded-xl px-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white border border-gray-200 transition-all"
                                 />
 
                                 {searchKeyword.trim() && (
@@ -200,10 +246,10 @@ function PetWalk() {
                                 <button
                                     onClick={handleSearchClick}
                                     disabled={loading}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-violet-500 hover:text-violet-600 disabled:text-gray-300 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-indigo-500 hover:text-indigo-600 disabled:text-gray-300 transition-colors"
                                 >
                                     {loading ? (
-                                        <div className="w-4 h-4 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
+                                        <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                                     ) : (
                                         <FaSearch className="w-4 h-4"/>
                                     )}
@@ -213,20 +259,20 @@ function PetWalk() {
 
                         {/* 카테고리 - 항상 보이게 */}
                         <div className="px-4 pb-4">
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-3 gap-3">
                                 {categories.map((category) => (
                                     <button
                                         key={category.id}
                                         onClick={() => handleCategorySearch(category.id)}
-                                        disabled={(searchMode === 'current' && !currentLocation) || loading}
-                                        className={`p-2 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center gap-1 ${
+                                        disabled={(searchMode === 'gps' && !currentLocation) || loading}
+                                        className={`p-3 md:p-2 rounded-xl text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center gap-2 md:gap-1 min-h-[72px] md:min-h-[64px] touch-manipulation ${
                                             selectedCategory === category.id
-                                                ? "bg-violet-500 text-white shadow-md"
-                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                ? "bg-indigo-500 text-white shadow-lg scale-105"
+                                                : "bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95"
                                         }`}
                                     >
-                                        <span className="text-lg">{category.emoji}</span>
-                                        <span className="text-xs leading-tight">{category.label}</span>
+                                        <span className="text-xl md:text-lg">{category.emoji}</span>
+                                        <span className="text-xs leading-tight text-center">{category.label}</span>
                                         {loading && selectedCategory === category.id && (
                                             <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                         )}
@@ -248,41 +294,68 @@ function PetWalk() {
                     {/* 검색 설정 패널 - 접을 수 있는 */}
                     {isSettingsPanelOpen && (
                         <div className="border-b border-gray-200 bg-gray-50">
-                            <div className="p-4 space-y-4">
+                            <div className="p-4 space-y-5">
                                 {/* 검색 모드 */}
                                 <div>
-                                    <h3 className="text-sm font-semibold text-gray-700 mb-2">검색 기준</h3>
-                                    <div className="flex bg-white rounded-lg p-1 border border-gray-200">
+                                    <h3 className="text-sm font-semibold text-gray-700 mb-3">검색 방식</h3>
+                                    <div className="space-y-2">
                                         <button
-                                            onClick={() => setSearchMode('current')}
-                                            className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all ${
-                                                searchMode === 'current'
-                                                    ? 'bg-violet-500 text-white shadow-sm'
-                                                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                                            onClick={() => handleSearchModeChange('gps')}
+                                            className={`w-full p-3 rounded-xl text-left transition-all ${
+                                                searchMode === 'gps'
+                                                    ? 'bg-indigo-500 text-white shadow-lg'
+                                                    : 'bg-white text-gray-700 hover:bg-indigo-50 border border-gray-200'
                                             }`}
                                         >
-                                            📍 내 위치 기준
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                                    searchMode === 'gps'
+                                                        ? 'bg-white/20'
+                                                        : 'bg-indigo-100'
+                                                }`}>
+                                                    📍
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-medium">GPS 위치 기준</div>
+                                                    <div className="text-xs opacity-75">현재 GPS 좌표에서 정확한 거리순</div>
+                                                </div>
+                                            </div>
                                         </button>
+
                                         <button
-                                            onClick={() => setSearchMode('mapCenter')}
-                                            className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-all ${
+                                            onClick={() => handleSearchModeChange('mapCenter')}
+                                            className={`w-full p-3 rounded-xl text-left transition-all ${
                                                 searchMode === 'mapCenter'
-                                                    ? 'bg-violet-500 text-white shadow-sm'
-                                                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                                                    ? 'bg-indigo-500 text-white shadow-lg'
+                                                    : 'bg-white text-gray-700 hover:bg-indigo-50 border border-gray-200'
                                             }`}
                                         >
-                                            🗺️ 지도 중심
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                                    searchMode === 'mapCenter'
+                                                        ? 'bg-white/20'
+                                                        : 'bg-indigo-100'
+                                                }`}>
+                                                    🗺️
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-medium">지도 화면 중심</div>
+                                                    <div className="text-xs opacity-75">현재 보고 있는 지역 기준</div>
+                                                </div>
+                                            </div>
                                         </button>
+
                                     </div>
                                 </div>
 
-                                {/* 위치 버튼들 */}
+
+                                {/* 위치 관련 버튼들 */}
                                 <div className="flex gap-2">
-                                    {!currentLocation && searchMode === 'current' && (
+                                    {!currentLocation && searchMode === 'gps' && (
                                         <button
                                             onClick={getCurrentLocation}
                                             disabled={locationLoading}
-                                            className="flex-1 flex items-center justify-center gap-2 bg-violet-500 text-white py-2.5 px-3 rounded-lg text-xs font-medium hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            className="flex-1 flex items-center justify-center gap-2 bg-indigo-500 text-white py-2.5 px-3 rounded-lg text-xs font-medium hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                         >
                                             {locationLoading ? (
                                                 <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -293,7 +366,7 @@ function PetWalk() {
                                         </button>
                                     )}
 
-                                    {searchMode === 'mapCenter' && currentLocation && (
+                                    {currentLocation && searchMode !== 'gps' && (
                                         <button
                                             onClick={moveToCurrentLocation}
                                             className="flex-1 flex items-center justify-center gap-2 bg-gray-500 text-white py-2.5 px-3 rounded-lg text-xs font-medium hover:bg-gray-600 transition-colors"
@@ -308,22 +381,27 @@ function PetWalk() {
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
                                         <h3 className="text-sm font-semibold text-gray-700">검색 반경</h3>
-                                        <span className="text-sm font-medium text-violet-600 bg-violet-100 px-2 py-1 rounded-full">
+                                        <span className="text-sm font-medium text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">
                                             {searchRadius >= 1000 ? `${searchRadius / 1000}km` : `${searchRadius}m`}
                                         </span>
                                     </div>
-                                    <input
-                                        type="range"
-                                        min="500"
-                                        max="5000"
-                                        step="500"
-                                        value={searchRadius}
-                                        onChange={(e) => handleRadiusChangeWithSearch(Number(e.target.value))}
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                                    />
-                                    <div className="flex justify-between text-xs text-gray-400 mt-1">
-                                        <span>500m</span>
-                                        <span>5km</span>
+                                    <div className="relative">
+                                        <input
+                                            type="range"
+                                            min="500"
+                                            max="5000"
+                                            step="500"
+                                            value={searchRadius}
+                                            onChange={(e) => handleRadiusChangeWithSearch(Number(e.target.value))}
+                                            className="w-full h-3 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full appearance-none cursor-pointer slider shadow-inner"
+                                            style={{
+                                                background: `linear-gradient(to right, #6366f1 0%, #6366f1 ${((searchRadius - 500) / (5000 - 500)) * 100}%, #e5e7eb ${((searchRadius - 500) / (5000 - 500)) * 100}%, #e5e7eb 100%)`
+                                            }}
+                                        />
+                                        <div className="flex justify-between text-xs text-gray-500 mt-2 px-1">
+                                            <span className="bg-gray-100 px-2 py-1 rounded-full">500m</span>
+                                            <span className="bg-gray-100 px-2 py-1 rounded-full">5km</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -336,7 +414,7 @@ function PetWalk() {
                             <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-semibold text-gray-700">검색 결과</h3>
                                 {searchResults && searchResults.documents && (
-                                    <span className="text-xs bg-violet-100 text-violet-700 px-2 py-1 rounded-full font-medium">
+                                    <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-medium">
                                         {searchResults.documents.length}개
                                     </span>
                                 )}
@@ -346,18 +424,28 @@ function PetWalk() {
                         <div className="flex-1 overflow-y-auto bg-gray-50">
                             {/* 로딩 상태 */}
                             {loading && (
-                                <div className="p-6 text-center">
-                                    <div
-                                        className="animate-spin rounded-full h-8 w-8 border-2 border-violet-500 border-t-transparent mx-auto mb-3"></div>
-                                    <p className="text-sm text-gray-500">검색 중...</p>
+                                <div className="p-8 text-center">
+                                    <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+                                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-3 border-indigo-200 border-t-indigo-500"></div>
+                                        </div>
+                                        <h4 className="font-bold text-gray-900 text-lg mb-2">검색 중...</h4>
+                                        <p className="text-sm text-gray-600">잠시만 기다려주세요</p>
+                                    </div>
                                 </div>
                             )}
 
                             {/* 에러 상태 */}
                             {error && (
-                                <div className="p-6">
-                                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                        <p className="text-red-700 text-sm">{error}</p>
+                                <div className="p-8 text-center">
+                                    <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+                                        <div className="w-16 h-16 bg-gradient-to-br from-red-100 to-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <div className="text-3xl">⚠️</div>
+                                        </div>
+                                        <h4 className="font-bold text-gray-900 text-lg mb-3">오류가 발생했어요</h4>
+                                        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                                            <p className="text-red-700 text-sm leading-relaxed">{error}</p>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -366,7 +454,7 @@ function PetWalk() {
                             {searchResults && searchResults.documents && searchResults.documents.length > 0 ? (
                                 <div className="p-4 space-y-3">
                                     {searchResults.documents.map((place: any, index: number) => {
-                                        const distance = currentLocation && searchMode === 'current'
+                                        const distance = currentLocation && searchMode === 'gps'
                                             ? calculateDistance(
                                                 currentLocation.lat,
                                                 currentLocation.lng,
@@ -383,62 +471,110 @@ function PetWalk() {
                                                     parseFloat(place.x),
                                                     place
                                                 )}
-                                                className="bg-gray-50 hover:bg-gray-100 rounded-lg p-4 cursor-pointer transition-colors border hover:border-violet-200"
+                                                className="group bg-white hover:bg-gradient-to-br hover:from-indigo-50 hover:to-white rounded-2xl p-5 md:p-4 cursor-pointer transition-all duration-300 border border-gray-100 hover:border-indigo-200 shadow-sm hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] animate-fade-in touch-manipulation"
                                             >
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <h4 className="font-semibold text-gray-900 flex-1">{place.place_name}</h4>
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div className="flex-1">
+                                                        <h4 className="font-bold text-gray-900 text-lg mb-1 group-hover:text-indigo-800 transition-colors">{place.place_name}</h4>
+                                                        {place.category_name && (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="inline-block px-2 py-1 bg-gradient-to-r from-indigo-100 to-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-200">
+                                                                    {place.category_name.split(' > ').pop()}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     {distance !== null && (
-                                                        <span
-                                                            className="text-xs bg-violet-100 text-violet-700 px-2 py-1 rounded-full ml-2 flex-shrink-0">
-                                                            {formatDistance(distance)}
-                                                        </span>
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <span className="text-xs bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-3 py-1.5 rounded-full font-semibold shadow-sm">
+                                                                {formatDistance(distance)}
+                                                            </span>
+                                                        </div>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-gray-600 mb-1">{place.address_name}</p>
-                                                {place.phone && (
-                                                    <p className="text-xs text-gray-500">{place.phone}</p>
-                                                )}
-                                                {place.category_name && (
-                                                    <p className="text-xs text-violet-600 mt-2">
-                                                        {place.category_name.split(' > ').pop()}
-                                                    </p>
-                                                )}
+
+                                                <div className="space-y-2">
+                                                    <div className="flex items-start gap-2">
+                                                        <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/>
+                                                        </svg>
+                                                        <p className="text-sm text-gray-600 leading-relaxed">{place.address_name}</p>
+                                                    </div>
+
+                                                    {place.phone && (
+                                                        <div className="flex items-center gap-2">
+                                                            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                                                            </svg>
+                                                            <p className="text-sm text-gray-500">{place.phone}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                                                    <span className="text-xs text-gray-400 font-medium">지도에서 보기</span>
+                                                    <svg className="w-4 h-4 text-indigo-400 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                    </svg>
+                                                </div>
                                             </div>
                                         );
                                     })}
                                 </div>
                             ) : !loading && !error && (
-                                <div className="p-6 text-center text-gray-500">
-                                    {searchMode === 'current' && !currentLocation ? (
-                                        <div>
-                                            <div className="text-4xl mb-4">📍</div>
-                                            <h4 className="font-semibold mb-2">위치 정보가 필요해요</h4>
-                                            <p className="text-xs mb-4">현재 위치 기준으로 검색하려면<br/>위치 권한을 허용해주세요</p>
+                                <div className="p-8 text-center">
+                                    {searchMode === 'gps' && !currentLocation ? (
+                                        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+                                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <div className="text-3xl">📍</div>
+                                            </div>
+                                            <h4 className="font-bold text-gray-900 text-lg mb-3">위치 정보가 필요해요</h4>
+                                            <p className="text-sm text-gray-600 mb-6 leading-relaxed">현재 위치 기준으로 검색하려면<br/>위치 권한을 허용해주세요</p>
                                             <button
                                                 onClick={getCurrentLocation}
-                                                className="bg-violet-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-violet-600"
+                                                className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] flex items-center justify-center gap-2 mx-auto"
                                             >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
                                                 위치 권한 허용하기
                                             </button>
                                         </div>
                                     ) : searchKeyword.trim() ? (
-                                        <div>
-                                            <div className="text-4xl mb-4">🔍</div>
-                                            <h4 className="font-semibold mb-2">검색 결과가 없어요</h4>
-                                            <p className="text-xs">'{searchKeyword}' 검색 결과를 찾을 수 없습니다.<br/>다른 키워드로
-                                                시도해보세요.</p>
+                                        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+                                            <div className="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <div className="text-3xl">🔍</div>
+                                            </div>
+                                            <h4 className="font-bold text-gray-900 text-lg mb-3">검색 결과가 없어요</h4>
+                                            <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                                                <p className="text-sm text-gray-600 leading-relaxed">
+                                                    '<span className="font-medium text-indigo-600">{searchKeyword}</span>' 검색 결과를 찾을 수 없습니다.
+                                                </p>
+                                            </div>
+                                            <p className="text-xs text-gray-500">다른 키워드로 시도해보세요</p>
                                         </div>
                                     ) : (
-                                        <div>
-                                            <div className="text-4xl mb-4">🐾</div>
-                                            <h4 className="font-semibold mb-2">검색 결과가 없어요</h4>
-                                            <p className="text-xs mb-4">{searchMode === 'current' ? '근처' : '이 지역'}에
-                                                '{selectedCategory}'가 없습니다.<br/>검색 반경을 늘려보세요.</p>
+                                        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+                                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <div className="text-3xl">🐾</div>
+                                            </div>
+                                            <h4 className="font-bold text-gray-900 text-lg mb-3">검색 결과가 없어요</h4>
+                                            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                                                <p className="text-sm text-gray-600 leading-relaxed mb-2">
+                                                    {searchMode === 'gps' ? 'GPS 근처' : '이 지역'}에
+                                                    '<span className="font-medium text-indigo-600">{selectedCategory}</span>'가 없습니다.
+                                                </p>
+                                                <p className="text-xs text-gray-500">검색 반경을 늘려보세요</p>
+                                            </div>
                                             {searchRadius < 5000 && (
                                                 <button
                                                     onClick={() => handleRadiusChangeWithSearch(Math.min(searchRadius + 1000, 5000))}
-                                                    className="bg-violet-100 text-violet-700 px-3 py-2 rounded-lg text-sm hover:bg-violet-200"
+                                                    className="bg-gradient-to-r from-indigo-100 to-indigo-50 text-indigo-700 px-4 py-2.5 rounded-xl text-sm font-medium hover:from-indigo-200 hover:to-indigo-100 transition-all border border-indigo-200 hover:border-indigo-300 flex items-center justify-center gap-2 mx-auto"
                                                 >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                                    </svg>
                                                     반경 1km 늘리기
                                                 </button>
                                             )}
@@ -455,13 +591,13 @@ function PetWalk() {
                     <div id="map" className="w-full h-full rounded-l-xl lg:rounded-l-none"></div>
 
                     {/* 지도 컨트롤 */}
-                    <div className="absolute top-4 right-4 flex flex-col bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div className="absolute top-4 right-4 flex flex-col bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
                         <button
                             onClick={zoomIn}
-                            className="p-3 hover:bg-gray-50 border-b border-gray-200 transition-colors"
+                            className="p-5 md:p-4 hover:bg-indigo-50 border-b border-gray-200 transition-all hover:text-indigo-600 group active:scale-95 touch-manipulation"
                             aria-label="확대"
                         >
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor"
+                            <svg className="w-6 h-6 md:w-5 md:h-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor"
                                  viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                       d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -469,10 +605,10 @@ function PetWalk() {
                         </button>
                         <button
                             onClick={zoomOut}
-                            className="p-3 hover:bg-gray-50 transition-colors"
+                            className="p-5 md:p-4 hover:bg-indigo-50 transition-all hover:text-indigo-600 group active:scale-95 touch-manipulation"
                             aria-label="축소"
                         >
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor"
+                            <svg className="w-6 h-6 md:w-5 md:h-5 text-gray-600 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor"
                                  viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6"/>
                             </svg>
@@ -481,51 +617,61 @@ function PetWalk() {
 
                     {/* 선택된 장소 정보 */}
                     {selectedPlace && (
-                        <div className="absolute top-4 left-4 bg-white rounded-xl shadow-2xl border border-gray-200 p-5 max-w-sm backdrop-blur-sm bg-white/95">
-                            <div className="flex items-start justify-between mb-3">
-                                <h3 className="font-bold text-gray-900 text-lg flex-1 pr-3">{selectedPlace.place_name}</h3>
+                        <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 p-6 max-w-sm animate-fade-in">
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-gray-900 text-xl mb-2 leading-tight">{selectedPlace.place_name}</h3>
+                                    {selectedPlace.category_name && (
+                                        <span className="inline-block px-3 py-1.5 bg-gradient-to-r from-indigo-100 to-indigo-50 text-indigo-700 text-sm font-medium rounded-full border border-indigo-200">
+                                            {selectedPlace.category_name.split(' > ').pop()}
+                                        </span>
+                                    )}
+                                </div>
                                 <button
                                     onClick={() => setSelectedPlace(null)}
-                                    className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                                    className="p-3 md:p-2 hover:bg-gray-100 rounded-full transition-all hover:scale-110 active:scale-95 ml-3 touch-manipulation"
                                 >
-                                    <FaTimes className="w-4 h-4 text-gray-400" />
+                                    <FaTimes className="w-5 h-5 md:w-4 md:h-4 text-gray-400 hover:text-gray-600" />
                                 </button>
                             </div>
 
-                            {selectedPlace.category_name && (
-                                <div className="mb-3">
-                                    <span className="inline-block px-3 py-1 bg-violet-100 text-violet-700 text-xs font-medium rounded-full">
-                                        {selectedPlace.category_name.split(' > ').pop()}
-                                    </span>
-                                </div>
-                            )}
+                            <div className="space-y-4">
+                                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <svg className="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium text-gray-700 mb-1">주소</p>
+                                            <p className="text-sm text-gray-600 leading-relaxed">{selectedPlace.address_name}</p>
+                                        </div>
+                                    </div>
 
-                            <div className="space-y-2 text-sm">
-                                <p className="text-gray-600 flex items-start gap-2">
-                                    <svg className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" fill="currentColor"
-                                         viewBox="0 0 20 20">
-                                        <path fillRule="evenodd"
-                                              d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                                              clipRule="evenodd"/>
-                                    </svg>
-                                    {selectedPlace.address_name}
-                                </p>
-                                {selectedPlace.phone && (
-                                    <p className="text-gray-600 flex items-center gap-2">
-                                        <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="currentColor"
-                                             viewBox="0 0 20 20">
-                                            <path
-                                                d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
-                                        </svg>
-                                        {selectedPlace.phone}
-                                    </p>
-                                )}
+                                    {selectedPlace.phone && (
+                                        <div className="flex items-center gap-3 pt-2 border-t border-gray-200">
+                                            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium text-gray-700 mb-1">전화번호</p>
+                                                <p className="text-sm text-gray-600">{selectedPlace.phone}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
 
                                 {selectedPlace.place_url && (
                                     <button
                                         onClick={() => openWebView(selectedPlace.place_url)}
-                                        className="w-full mt-4 bg-violet-500 text-white py-2.5 px-4 rounded-xl text-sm font-medium hover:bg-violet-600 transition-colors shadow-sm"
+                                        className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 text-white py-3 px-4 rounded-xl text-sm font-semibold hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] flex items-center justify-center gap-2"
                                     >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
                                         카카오맵에서 자세히 보기
                                     </button>
                                 )}
@@ -576,41 +722,77 @@ const globalStyles = `
 .slider {
   -webkit-appearance: none;
   appearance: none;
-  background: transparent;
   cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
 }
 
 .slider::-webkit-slider-track {
-  background: #e5e7eb;
-  height: 6px;
-  border-radius: 3px;
+  height: 12px;
+  border-radius: 6px;
+  background: transparent;
 }
 
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  background: #8b5cf6;
-  height: 18px;
-  width: 18px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  height: 24px;
+  width: 24px;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4), 0 2px 4px rgba(0,0,0,0.1);
+  border: 3px solid white;
+  transition: all 0.2s ease;
+  position: relative;
+  top: -6px;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5), 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.slider::-webkit-slider-thumb:active {
+  transform: scale(1.05);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.6), 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .slider::-moz-range-track {
-  background: #e5e7eb;
-  height: 6px;
-  border-radius: 3px;
+  height: 12px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
 }
 
 .slider::-moz-range-thumb {
-  background: #8b5cf6;
-  height: 18px;
-  width: 18px;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  height: 24px;
+  width: 24px;
   border-radius: 50%;
   cursor: pointer;
-  border: none;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  border: 3px solid white;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4), 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5), 0 4px 8px rgba(0,0,0,0.15);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 `;
 
