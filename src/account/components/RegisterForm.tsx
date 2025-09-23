@@ -62,10 +62,18 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
 
     try {
       const { confirmPassword, ...registerData } = formData;
+      console.log('Removed confirmPassword:', confirmPassword);
       await register(registerData);
       onSuccess?.();
-    } catch (err: any) {
-      setError(err.response?.data?.message || '회원가입에 실패했습니다.');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error && 'response' in err &&
+        typeof err.response === 'object' && err.response !== null &&
+        'data' in err.response && typeof err.response.data === 'object' &&
+        err.response.data !== null && 'message' in err.response.data &&
+        typeof err.response.data.message === 'string'
+        ? err.response.data.message
+        : '회원가입에 실패했습니다.';
+      setError(errorMessage);
     }
   };
 

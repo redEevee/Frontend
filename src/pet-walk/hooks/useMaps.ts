@@ -1,6 +1,40 @@
-import React, {useState} from "react";
+import {useState} from "react";
 import {api} from '../utils/Api.tsx';
 import type {KakaoBackendSearchResponse} from "../types/kakaoMapsApi.ts";
+
+// 카테고리별 검색 설정
+const CATEGORY_CONFIG = {
+    '동물병원': {
+        searchType: 'KEYWORD' as const,
+        query: '동물병원',
+        categoryCode: null
+    },
+    '펫샵': {
+        searchType: 'KEYWORD' as const,
+        query: '펫샵',
+        categoryCode: null
+    },
+    '애견미용': {
+        searchType: 'KEYWORD' as const,
+        query: '애견미용',
+        categoryCode: null
+    },
+    '애견공원': {
+        searchType: 'KEYWORD' as const,
+        query: '애견공원 OR 반려동물공원 OR 도그런',
+        categoryCode: null
+    },
+    '애견카페': {
+        searchType: 'KEYWORD' as const,
+        query: '애견카페 OR 반려동물카페 OR 도그카페',
+        categoryCode: null
+    },
+    '애견호텔': {
+        searchType: 'KEYWORD' as const,
+        query: '애견호텔 OR 펜션 OR 반려동물숙박',
+        categoryCode: null
+    },
+};
 
 export const useMaps = () => {
     const [map, setMap] = useState<kakao.maps.Map | null>(null);
@@ -186,7 +220,44 @@ export const useMaps = () => {
         );
     };
 
-    // 현재 위치 기준 장소 검색
+    // 카테고리별 최적화된 검색 수행
+    const performOptimizedSearch = async (category: string, searchLat: number, searchLng: number) => {
+        const config = CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG];
+
+        if (!config) {
+            // 기본 키워드 검색
+            return await api.searchPlaces(category, "KEYWORD", {
+                x: searchLng,
+                y: searchLat,
+                radius: searchRadius,
+                size: 15,
+                sort: 'distance'
+            });
+        }
+
+        if (config.searchType === 'CATEGORY') {
+            // 카테고리 코드 기반 검색
+            return await api.searchPlaces('', "CATEGORY", {
+                categoryGroupCode: config.categoryCode,
+                x: searchLng,
+                y: searchLat,
+                radius: searchRadius,
+                size: 15,
+                sort: 'distance'
+            });
+        } else {
+            // 키워드 기반 검색 (OR 검색어 지원)
+            return await api.searchPlaces(config.query, "KEYWORD", {
+                x: searchLng,
+                y: searchLat,
+                radius: searchRadius,
+                size: 15,
+                sort: 'distance'
+            });
+        }
+    };
+
+    // 현재 위치 기준 정확한 GPS 좌표로 검색
     const searchNearbyPlaces = async (category: string) => {
         if (!currentLocation) {
             setError('현재 위치를 먼저 확인해주세요.');
@@ -197,19 +268,13 @@ export const useMaps = () => {
         setError(null);
 
         try {
-            const response = await api.searchPlaces(category, "KEYWORD", {
-                x: currentLocation.lng,
-                y: currentLocation.lat,
-                radius: searchRadius,
-                size: 15
-            });
-
+            const response = await performOptimizedSearch(category, currentLocation.lat, currentLocation.lng);
             setSearchResults(response);
-            console.log('현재 위치 기준 검색 결과:', response);
+            console.log(`현재 GPS 위치(${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}) 기준 ${category} 검색:`, response);
         } catch (error) {
             const errorMessage = error instanceof Error
                 ? error.message
-                : '근처 장소 검색 중 오류가 발생했습니다.';
+                : '현재 위치 기준 검색 중 오류가 발생했습니다.';
             setError(errorMessage);
             setSearchResults(null);
         } finally {
@@ -217,7 +282,7 @@ export const useMaps = () => {
         }
     };
 
-    // 지도 중심 기준 장소 검색
+    // 지도 화면 중심 기준 검색 (사용자가 보고 있는 지역)
     const searchNearbyPlacesByMapCenter = async (category: string) => {
         if (!map) {
             setError('지도를 불러오는 중입니다.');
@@ -232,24 +297,39 @@ export const useMaps = () => {
         setError(null);
 
         try {
-            const response = await api.searchPlaces(category, "KEYWORD", {
-                x: centerLng,
-                y: centerLat,
-                radius: searchRadius,
-                size: 15
-            });
-
+            const response = await performOptimizedSearch(category, centerLat, centerLng);
             setSearchResults(response);
-            console.log('지도 중심 기준 검색 결과:', response);
+            console.log(`지도 중심(${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}) 기준 ${category} 검색:`, response);
         } catch (error) {
             const errorMessage = error instanceof Error
                 ? error.message
-                : '장소 검색 중 오류가 발생했습니다.';
+                : '지도 중심 기준 검색 중 오류가 발생했습니다.';
             setError(errorMessage);
             setSearchResults(null);
         } finally {
             setLoading(false);
         }
+    };
+
+
+    // 실시간 지도 이동 기반 자동 검색
+    const handleMapDragEnd = async (selectedCategory: string) => {
+        if (!map || !selectedCategory) return;
+
+        const center = map.getCenter();
+        const centerLat = center.getLat();
+        const centerLng = center.getLng();
+
+        // 디바운싱을 위한 지연
+        setTimeout(async () => {
+            try {
+                const response = await performOptimizedSearch(selectedCategory, centerLat, centerLng);
+                setSearchResults(response);
+                console.log(`지도 이동 후 자동 검색 (${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}):`, response);
+            } catch (error) {
+                console.error('자동 검색 실패:', error);
+            }
+        }, 500);
     };
 
     // 현재 위치로 지도 이동
@@ -311,6 +391,7 @@ export const useMaps = () => {
         searchResults,
         selectedPlace,
         error,
+        setError,
         loading,
         locationLoading,
         currentLocation,
@@ -326,6 +407,7 @@ export const useMaps = () => {
         getCurrentLocation,
         searchNearbyPlaces,
         searchNearbyPlacesByMapCenter,
+        handleMapDragEnd,
         moveToCurrentLocation,
         handleRadiusChange
     }

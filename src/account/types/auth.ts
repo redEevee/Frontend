@@ -1,10 +1,8 @@
 export interface User {
-  id: string;
-  email: string;
+  accountId: number;
   username: string;
-  profileImage?: string;
-  createdAt: string;
-  updatedAt: string;
+  name?: string;
+  phoneNumber?: string;
 }
 
 export interface LoginRequest {
@@ -13,9 +11,10 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  user: User;
   token: string;
-  refreshToken: string;
+  accountId: number;
+  username: string;
+  expiresInSeconds: number;
 }
 
 export interface RegisterRequest {
