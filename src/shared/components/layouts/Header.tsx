@@ -5,11 +5,10 @@ import {NAV_ITEMS} from "../../constants/navigation.ts";
 import {useAuth} from "../../../account/hooks";
 
 function Header() {
-    const [scrolled, setScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const navigate = useNavigate();
-    const { isAuthenticated, user, logout } = useAuth();
+    const {isAuthenticated, user, logout} = useAuth();
 
     const goToPage = (url: string) => {
         navigate(url);
@@ -23,15 +22,6 @@ function Header() {
             console.error('Logout failed:', error);
         }
     };
-
-    useEffect(() => {
-        const handleScroll = () => {
-            setScrolled(window.scrollY > 20);
-        };
-
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
 
     useEffect(() => {
         const handleClickOutside = () => {
@@ -49,16 +39,14 @@ function Header() {
 
     return (
         <header
-            className={`h-16 w-full fixed top-0 z-50 transition-all duration-300 ${scrolled
-                ? 'bg-white shadow-lg backdrop-blur-lg bg-opacity-90'
-                : 'bg-transparent'}`}
+            className={"h-16 w-full fixed top-0 z-50 transition-all duration-300 bg-white shadow-lg backdrop-blur-lg bg-opacity-90"}
         >
             <div className="flex items-center justify-between w-full max-w-7xl mx-auto h-full px-6">
                 <div className="flex items-center space-x-2">
                     <div className="flex items-center cursor-pointer">
-                        <FaPaw className={`text-2xl ${scrolled ? 'text-purple-600' : 'text-white'}`}/>
+                        <FaPaw className={"text-2xl text-purple-600"}/>
                         <h1 onClick={() => goToPage("/")}
-                            className={`text-xl font-bold ml-2  ${scrolled ? 'text-gray-900' : 'text-white'}`}>MyRealPet</h1>
+                            className={"text-xl font-bold ml-2 text-gray-900"}>MyRealPet</h1>
                     </div>
                 </div>
 
@@ -66,7 +54,7 @@ function Header() {
                 <nav className="hidden md:flex items-center space-x-8">
                     {NAV_ITEMS.map((item, index) => (
                         <a key={index} onClick={() => goToPage(item.path)}
-                           className={`font-medium transition-colors hover:text-purple-500 cursor-pointer ${scrolled ? 'text-gray-700' : 'text-white'}`}>{item.name}</a>
+                           className={"font-medium transition-colors hover:text-purple-500 cursor-pointer text-gray-700"}>{item.name}</a>
                     ))}
                 </nav>
 
@@ -83,9 +71,7 @@ function Header() {
                                     e.stopPropagation();
                                     setUserMenuOpen(!userMenuOpen);
                                 }}
-                                className={`flex items-center space-x-2 px-4 py-2 font-medium rounded-full transition-all duration-300 ${scrolled
-                                    ? 'bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:shadow-lg hover:shadow-purple-200'
-                                    : 'bg-white text-purple-600 hover:bg-opacity-90'}`}>
+                                className={"flex items-center space-x-2 px-4 py-2 font-medium rounded-full transition-all duration-300 bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:shadow-lg hover:shadow-purple-200"}>
                                 <FaUser className="text-sm"/>
                                 <span>{user?.username}</span>
                             </button>
@@ -97,7 +83,7 @@ function Header() {
                                     <button
                                         onClick={handleLogout}
                                         className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 flex items-center space-x-2">
-                                        <FaSignOutAlt />
+                                        <FaSignOutAlt/>
                                         <span>로그아웃</span>
                                     </button>
                                 </div>
@@ -106,9 +92,7 @@ function Header() {
                     ) : (
                         <button
                             onClick={() => navigate('/login')}
-                            className={`hidden md:block px-5 py-2 font-medium rounded-full transition-all duration-300 ${scrolled
-                                ? 'bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:shadow-lg hover:shadow-purple-200'
-                                : 'bg-white text-purple-600 hover:bg-opacity-90'}`}>
+                            className={"hidden md:block px-5 py-2 font-medium rounded-full transition-all duration-300 bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:shadow-lg hover:shadow-purple-200"}>
                             로그인
                         </button>
                     )}
@@ -119,8 +103,8 @@ function Header() {
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     >
                         {mobileMenuOpen
-                            ? <FaTimes className={scrolled ? 'text-gray-900' : 'text-white'}/>
-                            : <FaBars className={scrolled ? 'text-gray-900' : 'text-white'}/>}
+                            ? <FaTimes className={"text-gray-900"}/>
+                            : <FaBars className={"text-gray-900"}/>}
                     </button>
                 </div>
             </div>
@@ -143,7 +127,7 @@ function Header() {
                                 <button
                                     onClick={handleLogout}
                                     className="w-full py-2 bg-red-500 text-white rounded-full font-medium flex items-center justify-center space-x-2">
-                                    <FaSignOutAlt />
+                                    <FaSignOutAlt/>
                                     <span>로그아웃</span>
                                 </button>
                             </div>
