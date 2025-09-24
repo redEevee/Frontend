@@ -12,9 +12,16 @@ interface PetFormData {
     type: 'dog' | 'cat' | 'other';
     name: string;
     gender: '남아' | '여아' | '정보없음';
-    breed: string;
+    mainBreed: string;
+    subBreed?: string | null;
+    customBreed?: string | null;
     dob: string;
     imageDataUrl?: string | null;
+    isNeutered?: boolean;
+    hasMicrochip?: boolean;
+    registrationNumber?: string;
+    registrationFile?: File | null;
+
 }
 
 // 데일리미션 설정
@@ -58,11 +65,15 @@ const initialPetsData: Pet[] = [
         type: 'dog',
         name: '왕만두',
         gender: '남아',
-        breed: '비숑 프리제',
+        mainBreed: '비숑 프리제',
+        subBreed: '',
+        customBreed: '',
         dob: '2022-04-13',
         hasMicrochip: true,
         isNeutered: true,
         imageUrl: getDefaultImageUrl('dog'),
+        registrationNum: '123456789123456',
+        registrationUrl: '',
         dailyMission: [],
         hasRerolledToday: false,
         lastMissionDate: '',
@@ -78,11 +89,15 @@ const initialPetsData: Pet[] = [
         type: 'cat',
         name: '정범이',
         gender: '여아',
-        breed: '코리안 숏헤어',
+        mainBreed: '코리안 숏헤어',
+        subBreed: '',
+        customBreed: '',
         dob: '2020-09-28',
         hasMicrochip: true,
         isNeutered: false,
         imageUrl: getDefaultImageUrl('cat'),
+        registrationNum: '123456789789789',
+        registrationUrl: '',
         dailyMission: [],
         hasRerolledToday: false,
         lastMissionDate: '',
@@ -98,11 +113,15 @@ const initialPetsData: Pet[] = [
         type: 'other',
         name: '코코',
         gender: '남아',
-        breed: '왕관앵무',
+        mainBreed: '왕관앵무',
+        subBreed: '',
+        customBreed: '',
         dob: '2023-01-15',
         hasMicrochip: false,
         isNeutered: false,
         imageUrl: getDefaultImageUrl('other'),
+        registrationNum: '123123789123456',
+        registrationUrl: '',
         dailyMission: [],
         hasRerolledToday: false,
         lastMissionDate: '',
@@ -202,6 +221,23 @@ const MyPetPage: React.FC = () => {
         updatePetsData(newPets);
     };
 
+    const handleOpenRegistration = (registrationUrl: string) => {
+        if (registrationUrl) {
+            // 파일 URL이 blob: 형태인 경우 새 창에서 열기
+            if (registrationUrl.startsWith('blob:') || registrationUrl.startsWith('data:')) {
+                window.open(registrationUrl, '_blank');
+            } else {
+                // 일반 URL인 경우 다운로드 또는 새 창에서 열기
+                const link = document.createElement('a');
+                link.href = registrationUrl;
+                link.target = '_blank';
+                link.click();
+            }
+        } else {
+            showAlert('등록된 동물등록증이 없습니다.');
+        }
+    };
+
     const handleSavePet = (petData: PetFormData) => {
         const imageUrl = petData.imageDataUrl || ((modalMode === 'edit' && currentPet) ? currentPet.imageUrl : getDefaultImageUrl(petData.type));
         let newPets: Pet[];
@@ -212,11 +248,15 @@ const MyPetPage: React.FC = () => {
                 type: petData.type,
                 name: petData.name,
                 gender: petData.gender,
-                breed: petData.breed,
+                mainBreed: petData.mainBreed,
+                subBreed: petData.subBreed || '',
+                customBreed: petData.customBreed || '',
                 dob: petData.dob,
                 imageUrl,
-                hasMicrochip: false,
-                isNeutered: false,
+                hasMicrochip: petData.hasMicrochip || false,
+                isNeutered: petData.isNeutered || false,
+                registrationNum: petData.registrationNumber || '',
+                registrationUrl: petData.registrationFile ? URL.createObjectURL(petData.registrationFile) : '',
                 dailyMission: generateRandomMissions(petData.type),
                 hasRerolledToday: false,
                 lastMissionDate: new Date().toISOString().slice(0, 10),
@@ -239,9 +279,15 @@ const MyPetPage: React.FC = () => {
                         type: petData.type,
                         name: petData.name,
                         gender: petData.gender,
-                        breed: petData.breed,
+                        mainBreed: petData.mainBreed,
+                        subBreed: petData.subBreed || '',
+                        customBreed: petData.customBreed || '',
                         dob: petData.dob,
                         imageUrl: petData.imageDataUrl || p.imageUrl, // Keep old image if new one isn't provided
+                        hasMicrochip: petData.hasMicrochip || false,
+                        isNeutered: petData.isNeutered || false,
+                        registrationNum: petData.registrationNumber || '',
+                        registrationUrl: petData.registrationFile ? URL.createObjectURL(petData.registrationFile) : p.registrationUrl,
                         dailyMission: hasTypeChanged ? generateRandomMissions(petData.type) : p.dailyMission,
                         hasRerolledToday: hasTypeChanged ? false : p.hasRerolledToday,
                     };
@@ -302,6 +348,7 @@ const MyPetPage: React.FC = () => {
                                 pet={pet}
                                 onEdit={handleEditPet}
                                 onOpenConfirm={handleOpenConfirm}
+                                onOpenRegistration={handleOpenRegistration}
                                 onShowAlert={showAlert}
                                 onToggleMission={handleToggleMission}
                                 onRerollMissions={handleRerollMissions}

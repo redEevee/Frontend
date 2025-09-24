@@ -82,11 +82,15 @@ export interface Pet {
     type: 'dog' | 'cat' | 'other';
     name: string;
     gender: '남아' | '여아' | '정보없음';
-    breed: string;
+    mainBreed: string;
+    subBreed: string;
+    customBreed: string;
     dob: string;
     hasMicrochip: boolean;
     isNeutered: boolean;
     imageUrl: string;
+    registrationNum: string;
+    registrationUrl: string;
 
     // 데일리 미션 관련 데이터
     dailyMission: DailyMission[];
