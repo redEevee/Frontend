@@ -60,8 +60,8 @@ export interface InBodyReport extends AIReport {
         energy: number;
         stool: number;
         behavior: number;
-        joints?: number; // Premium only
-        skin?: number;   // Premium only
+        joints: number;
+        skin: number;
     };
 }
 
@@ -84,7 +84,6 @@ export interface Pet {
     gender: '남아' | '여아' | '정보없음';
     breed: string;
     dob: string;
-    plan: 'free' | 'premium';
     hasMicrochip: boolean;
     isNeutered: boolean;
     imageUrl: string;
@@ -94,8 +93,10 @@ export interface Pet {
     hasRerolledToday: boolean;
     lastMissionDate: string;
 
-    // AI 리포트 무료 유료 사용 관련
-    freeReportCount: number; //AI 무료 체험 횟수
+    // AI 리포트 이용 횟수 관련
+    surveyCount: number; // 이번 주기 설문 진행 횟수
+    lastSurveyDate: string; // 마지막 설문 날짜
+
     weightRecords: WeightRecord[];
     healthNotes: HealthNote[];
     heatCycles: HeatCycle[];

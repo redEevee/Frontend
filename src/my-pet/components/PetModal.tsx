@@ -26,7 +26,6 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
     const [name, setName] = useState('');
     const [breed, setBreed] = useState('');
     const [dob, setDob] = useState('');
-    const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,7 +46,6 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
                 setDob('');
                 setImagePreview(null);
             }
-            setImageFile(null);
         }
     }, [isOpen, mode, pet]);
 
@@ -56,7 +54,6 @@ const PetModal: React.FC<PetModalProps> = ({isOpen, onClose, onSave, mode, pet})
     const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            setImageFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result as string);

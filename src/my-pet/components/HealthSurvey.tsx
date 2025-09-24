@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import type { Pet, SurveyAnswers, PremiumQuestion } from '../types/types';
+import type { SurveyAnswers, PremiumQuestion } from '../types/types';
 import { ALL_QUESTIONS } from '../constants/healthQuestions';
 
 interface HealthSurveyProps {
-    pet: Pet;
     onComplete: (answers: SurveyAnswers, questions: PremiumQuestion[]) => void;
     onBack: () => void;
 }
@@ -18,44 +17,38 @@ const shuffleArray = <T,>(array: T[]): T[] => {
     return newArray;
 };
 
-const HealthSurvey: React.FC<HealthSurveyProps> = ({ pet, onComplete, onBack }) => {
+const HealthSurvey: React.FC<HealthSurveyProps> = ({ onComplete, onBack }) => {
     const [step, setStep] = useState(0);
-    const [answers, setAnswers] = useState<Partial<SurveyAnswers>>({ plan: pet.plan });
+    const [answers, setAnswers] = useState<Partial<SurveyAnswers>>({});
 
     const surveyQuestions = useMemo(() => {
-        if (pet.plan === 'premium') {
-            const coreCategories: PremiumQuestion['category'][] = ['diet', 'energy', 'stool', 'behavior', 'joints', 'skin'];
-            const guaranteedQuestions: PremiumQuestion[] = [];
-            let remainingQuestions = [...ALL_QUESTIONS];
+        const coreCategories: PremiumQuestion['category'][] = ['diet', 'energy', 'stool', 'behavior', 'joints', 'skin'];
+        const guaranteedQuestions: PremiumQuestion[] = [];
+        let remainingQuestions = [...ALL_QUESTIONS];
 
-            // 1. Pick one random question from each core category
-            coreCategories.forEach(category => {
-                const questionsInCategory = remainingQuestions.filter(q => q.category === category);
-                if (questionsInCategory.length > 0) {
-                    const randomIndex = Math.floor(Math.random() * questionsInCategory.length);
-                    const selectedQuestion = questionsInCategory[randomIndex];
-                    guaranteedQuestions.push(selectedQuestion);
-                    // Remove the selected question from the pool
-                    remainingQuestions = remainingQuestions.filter(q => q.text !== selectedQuestion.text);
-                }
-            });
-
-            // 2. Shuffle the remaining questions and pick the rest
-            const shuffledRemaining = shuffleArray(remainingQuestions);
-            const additionalQuestions = shuffledRemaining.slice(0, 20 - guaranteedQuestions.length);
-
-            // 3. Combine and shuffle the final list
-            const finalQuestions = shuffleArray([...guaranteedQuestions, ...additionalQuestions]);
-            return finalQuestions;
-        }
-
-        // For free plan, select one question from each of the first 4 categories
-        const freeCategories: PremiumQuestion['category'][] = ['diet', 'energy', 'stool', 'behavior'];
-        return freeCategories.map(category => {
-            const questionsInCategory = ALL_QUESTIONS.filter(q => q.category === category);
-            return questionsInCategory[Math.floor(Math.random() * questionsInCategory.length)];
+        // 1. 각 핵심 카테고리에서 무작위 질문 1개씩 보장
+        coreCategories.forEach(category => {
+            const questionsInCategory = remainingQuestions.filter(q => q.category === category);
+            if (questionsInCategory.length > 0) {
+                const randomIndex = Math.floor(Math.random() * questionsInCategory.length);
+                const selectedQuestion = questionsInCategory[randomIndex];
+                guaranteedQuestions.push(selectedQuestion);
+                // 중복 선택을 방지하기 위해 전체 질문 목록에서 제거
+                remainingQuestions = remainingQuestions.filter(q => q.text !== selectedQuestion.text);
+            }
         });
-    }, [pet.plan]);
+
+        // 2. 나머지 질문을 무작위로 추가
+        const totalQuestionCount = Math.floor(Math.random() * 6) + 10; // 총 10~15개
+        const additionalQuestionCount = Math.max(0, totalQuestionCount - guaranteedQuestions.length);
+
+        const shuffledRemaining = shuffleArray(remainingQuestions);
+        const additionalQuestions = shuffledRemaining.slice(0, additionalQuestionCount);
+
+        // 3. 최종 질문 목록을 합치고 다시 섞어서 순서 무작위화
+        const finalQuestions = shuffleArray([...guaranteedQuestions, ...additionalQuestions]);
+        return finalQuestions;
+    }, []);
 
     const currentQuestion = surveyQuestions[step];
 
@@ -101,7 +94,7 @@ const HealthSurvey: React.FC<HealthSurveyProps> = ({ pet, onComplete, onBack }) 
             <button onClick={onBack} className="absolute top-4 left-4 text-gray-400 hover:text-gray-600"><i className="fas fa-times text-2xl"></i></button>
             <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
-                    <p className="text-sm font-medium text-indigo-600">{pet.plan === 'premium' ? '프리미엄' : ''} 건강 설문</p>
+                    <p className="text-sm font-medium text-indigo-600">건강 설문</p>
                     <p className="text-sm font-medium text-gray-500">{step + 1} / {surveyQuestions.length}</p>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2.5"><div className="bg-indigo-500 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div></div>
