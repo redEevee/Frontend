@@ -7,12 +7,13 @@ interface PetProfileCardProps {
     pet: Pet;
     onEdit: (pet: Pet) => void;
     onOpenConfirm: (id: number) => void;
+    onOpenRegistration: (registrationUrl: string) => void;
     onShowAlert: (message: string) => void;
     onToggleMission: (petId: number, task: string) => void;
     onRerollMissions: (petId: number) => void;
 }
 
-const PetProfileCard: React.FC<PetProfileCardProps> = ({ pet, onEdit, onOpenConfirm, onShowAlert, onToggleMission, onRerollMissions }) => {
+const PetProfileCard: React.FC<PetProfileCardProps> = ({ pet, onEdit, onOpenConfirm, onOpenRegistration, onToggleMission, onRerollMissions }) => {
     const navigate = useNavigate();
 
     // 미션 목록을 보여줄지 말지 결정하는 상태
@@ -74,7 +75,7 @@ const PetProfileCard: React.FC<PetProfileCardProps> = ({ pet, onEdit, onOpenConf
                                     <i className="fas fa-paw mr-1"></i>OTHER
                                 </span>
                             )}
-                            <p className="text-lg text-gray-600 font-medium">{pet.breed}</p>
+                            <p className="text-lg text-gray-600 font-medium">{pet.mainBreed}</p>
                         </div>
 
                         {/* 이름, 성별, 및 수정/삭제 버튼 */}
@@ -83,6 +84,7 @@ const PetProfileCard: React.FC<PetProfileCardProps> = ({ pet, onEdit, onOpenConf
                             <div className="space-x-1">
                                 <button onClick={() => onEdit(pet)} className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"><i className="fas fa-pen text-sm"></i></button>
                                 <button onClick={() => onOpenConfirm(pet.id)} className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-red-500 transition"><i className="fas fa-trash text-sm"></i></button>
+                                <button onClick={() => onOpenRegistration(pet.registrationUrl)} className="p-2 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"><i className="fas fa-file text-sm"></i></button>
                             </div>
                         </div>
 
@@ -136,11 +138,11 @@ const PetProfileCard: React.FC<PetProfileCardProps> = ({ pet, onEdit, onOpenConf
 
                 {/* 하단 기능 아이콘 메뉴 */}
                 <div className="mt-6 pt-6 border-t border-gray-200 flex justify-around">
-                    <div className="flex flex-col items-center cursor-pointer text-center w-20" onClick={() => onShowAlert('건강 기록 페이지로 이동합니다.')}>
+                    <div className="flex flex-col items-center cursor-pointer text-center w-20" onClick={() => navigate(`/memories/${pet.id}`)}>
                         <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-500 text-2xl mb-2"><i className="fa-solid fa-book-medical"></i></div>
                         <span className="text-sm text-gray-600">건강 기록</span>
                     </div>
-                    <div className="flex flex-col items-center cursor-pointer text-center w-20" onClick={() => onShowAlert('진료/접종 페이지로 이동합니다.')}>
+                    <div className="flex flex-col items-center cursor-pointer text-center w-20" onClick={() => navigate(`/medical-record/${pet.id}`)}>
                         <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center text-green-500 text-2xl mb-2"><i className="fa-solid fa-stethoscope"></i></div>
                         <span className="text-sm text-gray-600">진료/접종</span>
                     </div>
