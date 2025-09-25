@@ -8,17 +8,26 @@ interface AIReportTabProps {
     onUpdatePet: (updatedPet: Pet) => void;
 }
 
-const AIReportTab: React.FC<AIReportTabProps> = ({ pet: originalPet, onUpdatePet }) => {
-    const pet = {
-        ...originalPet,
-        plan: originalPet.id === 1 ? 'premium' : originalPet.plan,
-    };
+const AIReportTab: React.FC<AIReportTabProps> = ({ pet, onUpdatePet }) => {
     const [view, setView] = useState<'idle' | 'survey' | 'result'>('idle');
     const [activeResult, setActiveResult] = useState<InBodyReport | null>(null);
 
     const handleStartSurvey = () => {
-        if (pet.plan === 'free' && (pet.freeReportCount ?? 3) <= 0) {
-            alert("무료 체험 횟수를 모두 사용하셨습니다. 유료 플랜으로 전환해주세요.");
+        const today = new Date();
+        const lastDate = pet.lastSurveyDate ? new Date(pet.lastSurveyDate) : null;
+        let currentCount = pet.surveyCount || 0;
+
+        if (lastDate) {
+            const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays > 30) {
+                currentCount = 0; // 30일 지났으면 횟수 초기화
+            }
+        }
+
+        if (currentCount >= 2) {
+            const nextAvailableDate = lastDate ? new Date(lastDate.setDate(lastDate.getDate() + 30)) : new Date();
+            alert(`이번 주기 설문 횟수를 모두 사용하셨습니다.\n다음 설문은 ${nextAvailableDate.toLocaleDateString()}부터 가능합니다.`);
             return;
         }
         setView('survey');
@@ -55,7 +64,7 @@ const AIReportTab: React.FC<AIReportTabProps> = ({ pet: originalPet, onUpdatePet
             if (Object.prototype.hasOwnProperty.call(categoryScores, category)) {
                 const scores = categoryScores[category];
                 const averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-                (finalScores as any)[category] = Math.round(averageScore);
+                finalScores[category as keyof typeof finalScores] = Math.round(averageScore);
                 totalScore += averageScore;
                 categoryCount++;
             }
@@ -94,10 +103,28 @@ const AIReportTab: React.FC<AIReportTabProps> = ({ pet: originalPet, onUpdatePet
             scores: finalScores,
         };
 
+        // Update survey count and date
+        const today = new Date();
+        const lastDate = pet.lastSurveyDate ? new Date(pet.lastSurveyDate) : null;
+        let newSurveyCount = pet.surveyCount || 0;
+
+        if (lastDate) {
+            const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays > 30) {
+                newSurveyCount = 1; // Reset and count 1
+            } else {
+                newSurveyCount++;
+            }
+        } else {
+            newSurveyCount = 1;
+        }
+
         const updatedPet: Pet = {
             ...pet,
             aiReports: [newReport, ...(pet.aiReports || [])],
-            freeReportCount: pet.plan === 'premium' ? pet.freeReportCount : (pet.freeReportCount ?? 3) - 1,
+            surveyCount: newSurveyCount,
+            lastSurveyDate: today.toISOString(),
         };
         onUpdatePet(updatedPet);
 
@@ -120,12 +147,29 @@ const AIReportTab: React.FC<AIReportTabProps> = ({ pet: originalPet, onUpdatePet
     }
 
     if (view === 'survey') {
-        return <HealthSurvey pet={pet} onComplete={handleSurveyComplete} onBack={handleReturnToIdle} />;
+        return <HealthSurvey onComplete={handleSurveyComplete} onBack={handleReturnToIdle} />;
     }
 
     if (view === 'result' && activeResult) {
         return <InBodyResult pet={pet} result={activeResult} onBack={handleReturnToIdle} />;
     }
+    
+    const getRemainingCount = () => {
+        const today = new Date();
+        const lastDate = pet.lastSurveyDate ? new Date(pet.lastSurveyDate) : null;
+        let currentCount = pet.surveyCount || 0;
+
+        if (lastDate) {
+            const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays > 30) {
+                currentCount = 0; // Reset for display
+            }
+        }
+        return 2 - currentCount;
+    };
+    
+    const remainingCount = getRemainingCount();
 
     return (
         <div className="animate-fade-in space-y-8">
@@ -135,30 +179,21 @@ const AIReportTab: React.FC<AIReportTabProps> = ({ pet: originalPet, onUpdatePet
                         <h3 className="text-2xl font-bold text-gray-800">펫바디 건강 설문</h3>
                         <p className="text-gray-500 mt-1">{pet.name}의 상태에 대한 몇 가지 질문에 답하고 상세 리포트를 받아보세요.</p>
                     </div>
-                    {pet.plan === 'free' && (
-                         <div className="mt-4 sm:mt-0 text-center">
-                            <p className="text-sm font-medium text-gray-600">남은 무료 횟수</p>
-                            <p className="text-3xl font-bold text-indigo-600">{pet.freeReportCount ?? 3} <span className="text-lg font-normal text-gray-500">/ 3</span></p>
-                        </div>
-                    )}
-                     {pet.plan === 'premium' && (
-                         <div className="mt-4 sm:mt-0 text-center">
-                            <p className="text-sm font-medium text-yellow-500">프리미엄 플랜</p>
-                            <p className="text-3xl font-bold text-yellow-500"><i className="fas fa-crown"></i> 무제한</p>
-                        </div>
-                    )}
+                    <div className="mt-4 sm:mt-0 text-center">
+                        <p className="text-sm font-medium text-gray-600">이번 주기 남은 횟수</p>
+                        <p className="text-3xl font-bold text-indigo-600">{remainingCount} <span className="text-lg font-normal text-gray-500">/ 2</span></p>
+                    </div>
                 </div>
                 <div className="mt-6">
-                    {(pet.plan === 'premium' || (pet.freeReportCount ?? 3) > 0) ? (
+                    {remainingCount > 0 ? (
                         <button onClick={handleStartSurvey} className="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-colors duration-300 shadow-lg">
                             <i className="fas fa-poll-h mr-2"></i>
-                            {pet.plan === 'premium' ? '프리미엄 정밀 설문 시작' : '건강 설문 시작하기'}
+                            건강 설문 시작하기
                         </button>
                     ) : (
-                        <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <h4 className="font-bold text-yellow-800">무료 체험이 종료되었습니다.</h4>
-                            <p className="text-sm text-yellow-700 mt-1">더 많은 리포트를 생성하려면 유료 플랜으로 업그레이드해주세요.</p>
-                            <button className="mt-3 bg-yellow-400 text-yellow-900 font-bold py-2 px-4 rounded-lg hover:bg-yellow-500 transition">유료 플랜 보러가기</button>
+                        <div className="text-center p-4 bg-gray-100 border border-gray-200 rounded-lg">
+                            <h4 className="font-bold text-gray-800">이번 주기 설문 횟수를 모두 사용하셨습니다.</h4>
+                            <p className="text-sm text-gray-700 mt-1">다음 주기에 다시 이용해주세요.</p>
                         </div>
                     )}
                 </div>

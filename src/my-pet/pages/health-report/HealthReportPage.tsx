@@ -25,7 +25,6 @@ const HealthReportPage: React.FC = () => {
                     // 데이터 마이그레이션: Pet 데이터에 최신 필드가 없을 경우 기본값을 설정합니다.
                     const migratedPet: Pet = {
                         ...currentPet,
-                        freeReportCount: typeof currentPet.freeReportCount === 'number' ? currentPet.freeReportCount : 3,
                         aiReports: Array.isArray(currentPet.aiReports) ? currentPet.aiReports : [],
                     };
                     setPetData(migratedPet);

@@ -33,7 +33,7 @@ const ScoreBar: React.FC<{ score: number; label: string; color: keyof typeof col
     </div>
 );
 
-const InBodyResult: React.FC<InBodyResultProps> = ({ pet, result, onBack }) => {
+const InBodyResult: React.FC<InBodyResultProps> = ({ result, onBack }) => {
     const scoreColor =
         result.overallScore > 70
             ? 'text-blue-500'
@@ -41,11 +41,7 @@ const InBodyResult: React.FC<InBodyResultProps> = ({ pet, result, onBack }) => {
                 ? 'text-yellow-500'
                 : 'text-red-500';
 
-    const isPremium = pet.plan === 'premium';
-
-    const chartLabels = isPremium
-        ? ['식습관', '활동량', '배변상태', '행동변화', '관절건강', '피부/모질']
-        : ['식습관', '활동량', '배변상태', '행동변화'];
+    const chartLabels = ['식습관', '활동량', '배변상태', '행동변화', '관절건강', '피부/모질'];
 
     // 안전하게 기본값 처리
     const scores = {
@@ -74,7 +70,6 @@ const InBodyResult: React.FC<InBodyResultProps> = ({ pet, result, onBack }) => {
                     <i className="fas fa-arrow-left text-2xl"></i>
                 </button>
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">건강 분석 리포트</h2>
-                {isPremium && <p className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-yellow-600 bg-yellow-200">PREMIUM</p>}
                 <p className="text-sm text-gray-500 mt-1">{result.date}</p>
             </div>
 
@@ -97,8 +92,8 @@ const InBodyResult: React.FC<InBodyResultProps> = ({ pet, result, onBack }) => {
                     <ScoreBar score={scores.energy} label="활동량" color="orange" />
                     <ScoreBar score={scores.stool} label="배변상태" color="yellow" />
                     <ScoreBar score={scores.behavior} label="행동변화" color="purple" />
-                    {isPremium && <ScoreBar score={scores.joints} label="관절건강" color="teal" />}
-                    {isPremium && <ScoreBar score={scores.skin} label="피부/모질" color="pink" />}
+                    <ScoreBar score={scores.joints} label="관절건강" color="teal" />
+                    <ScoreBar score={scores.skin} label="피부/모질" color="pink" />
                 </div>
             </div>
 
@@ -134,13 +129,6 @@ const InBodyResult: React.FC<InBodyResultProps> = ({ pet, result, onBack }) => {
 
             {/* Premium Upsell & Back Button */}
             <div className="mt-10 text-center">
-                {!isPremium && (
-                    <div className="max-w-lg mx-auto bg-yellow-50 border-2 border-yellow-200 p-4 rounded-lg mb-6">
-                        <p className="text-yellow-800 font-semibold">
-                            <i className="fas fa-crown mr-2"></i>프리미엄 플랜을 이용하시면 보다 정확한 펫바디를 받아볼 수 있습니다.
-                        </p>
-                    </div>
-                )}
                 <button onClick={onBack} className="py-2 px-8 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition">
                     목록으로 돌아가기
                 </button>
